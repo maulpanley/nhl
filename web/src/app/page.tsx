@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { dbCounts, searchPlayers } from "@/lib/db";
+import { activeTeams, dbCounts, searchPlayers, topScorers } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -9,9 +9,11 @@ export default async function Home({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const [counts, hits] = await Promise.all([
+  const [counts, hits, teams, scorers] = await Promise.all([
     dbCounts(),
     q ? searchPlayers(q) : Promise.resolve(null),
+    activeTeams(),
+    topScorers(10),
   ]);
 
   return (
@@ -71,6 +73,46 @@ export default async function Home({
           </table>
         </section>
       )}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <section className="card">
+          <h2 className="font-medium mb-2">Top scorers — latest season</h2>
+          <table className="stat-table">
+            <thead>
+              <tr>
+                <th>Player</th><th>Team</th><th>GP</th><th>G</th><th>A</th><th>P</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scorers.map((p) => (
+                <tr key={String(p.player_id)}>
+                  <td>
+                    <Link href={`/player/${p.player_id}`}>{String(p.full_name)}</Link>
+                  </td>
+                  <td>{String(p.team_abbrev ?? "—")}</td>
+                  <td>{String(p.gp)}</td>
+                  <td>{String(p.goals)}</td>
+                  <td>{String(p.assists)}</td>
+                  <td>{String(p.points)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        <section className="card">
+          <h2 className="font-medium mb-2">Teams</h2>
+          <ul className="text-sm columns-2" style={{ columnGap: "1rem" }}>
+            {teams.map((t) => (
+              <li key={String(t.abbrev)} className="py-0.5">
+                <Link href={`/team/${t.abbrev}`} className="plain-link">
+                  {String(t.full_name)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </>
   );
 }
