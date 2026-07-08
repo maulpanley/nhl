@@ -39,17 +39,18 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
         <h1 className="text-xl font-semibold flex items-center gap-2">
           <TeamLogo abbrev={String(team.abbrev)} size={36} />
           {team.full_name}
+        </h1>
+        <p className="text-sm" style={{ color: "var(--ink-2)" }}>
+          {team.abbrev}
+        </p>
+        <div className="mt-2">
           <FavoriteButton
             kind="team"
             refId={String(team.abbrev)}
             initial={favorited}
             signedIn={Boolean(userId)}
-            label={String(team.full_name)}
           />
-        </h1>
-        <p className="text-sm" style={{ color: "var(--ink-2)" }}>
-          {team.abbrev}
-        </p>
+        </div>
       </section>
 
       <section className="card overflow-x-auto">

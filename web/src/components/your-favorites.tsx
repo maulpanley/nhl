@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { TeamLogo } from "@/components/team-logo";
 
 type Fav = {
-  players: { player_id: number; full_name: string; team_abbrev: string | null }[];
+  players: { player_id: number; full_name: string; team_abbrev: string | null; milestone: string | null }[];
   teams: { abbrev: string; full_name: string }[];
 };
 
@@ -30,7 +30,8 @@ export function YourFavorites() {
       <section className="card">
         <h2 className="font-medium mb-1">Your favorites</h2>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
-          Tap the ☆ on any player or team page to save it here.
+          Tap ☆ Favorite on any player or team page to pin it here — and we&apos;ll email you
+          when a favorite player nears a career milestone.
         </p>
       </section>
     );
@@ -38,21 +39,37 @@ export function YourFavorites() {
 
   return (
     <section className="card">
-      <h2 className="font-medium mb-2">Your favorites</h2>
-      <div className="flex flex-wrap gap-2">
-        {fav.teams.map((t) => (
-          <Link key={t.abbrev} href={`/team/${t.abbrev}`} className="fav-chip">
-            <TeamLogo abbrev={t.abbrev} size={18} />
-            {t.full_name}
-          </Link>
-        ))}
-        {fav.players.map((p) => (
-          <Link key={p.player_id} href={`/player/${p.player_id}`} className="fav-chip">
-            {p.team_abbrev ? <TeamLogo abbrev={p.team_abbrev} size={18} /> : null}
-            {p.full_name}
-          </Link>
-        ))}
-      </div>
+      <h2 className="font-medium mb-1">Your favorites</h2>
+      <p className="text-xs mb-3" style={{ color: "var(--ink-muted)" }}>
+        We&apos;ll email you when a favorite player nears a career milestone.
+      </p>
+      {fav.teams.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {fav.teams.map((t) => (
+            <Link key={t.abbrev} href={`/team/${t.abbrev}`} className="fav-chip">
+              <TeamLogo abbrev={t.abbrev} size={18} />
+              {t.full_name}
+            </Link>
+          ))}
+        </div>
+      )}
+      {fav.players.length > 0 && (
+        <ul className="flex flex-col gap-1.5">
+          {fav.players.map((p) => (
+            <li key={p.player_id} className="flex items-center gap-2 text-sm">
+              {p.team_abbrev ? <TeamLogo abbrev={p.team_abbrev} size={18} /> : null}
+              <Link href={`/player/${p.player_id}`} className="plain-link">
+                {p.full_name}
+              </Link>
+              {p.milestone && (
+                <span className="milestone-chip" style={{ fontSize: "0.72rem", padding: "0.15rem 0.5rem" }}>
+                  🏒 {p.milestone}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

@@ -4,36 +4,33 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toggleFavorite } from "@/app/favorites-actions";
 
-/** Star toggle. `refId` (not `ref`, which is reserved) is the player_id or team
-    abbrev. Signed-out users are sent to /signin. */
+/** Labeled star toggle that explains the payoff (milestone alerts). `refId`
+    (not `ref`, which is reserved) is the player_id or team abbrev. */
 export function FavoriteButton({
   kind,
   refId,
   initial,
   signedIn,
-  label,
 }: {
   kind: "player" | "team";
   refId: string;
   initial: boolean;
   signedIn: boolean;
-  label: string;
 }) {
   const [fav, setFav] = useState(initial);
   const [pending, start] = useTransition();
   const router = useRouter();
 
-  const title = signedIn
-    ? fav
-      ? `Remove ${label} from favorites`
-      : `Add ${label} to favorites`
-    : "Sign in to save favorites";
+  const text = !signedIn
+    ? "Favorite for milestone alerts"
+    : fav
+      ? "Favorited — milestone alerts on"
+      : "Favorite for milestone alerts";
 
   return (
     <button
       type="button"
       className={`fav-btn${fav ? " on" : ""}`}
-      title={title}
       aria-pressed={fav}
       disabled={pending}
       onClick={() => {
@@ -48,7 +45,8 @@ export function FavoriteButton({
         });
       }}
     >
-      {fav ? "★" : "☆"}
+      <span aria-hidden="true">{fav ? "★" : "☆"}</span>
+      {text}
     </button>
   );
 }

@@ -94,13 +94,6 @@ export default async function PlayerPage({
         <h1 className="text-xl font-semibold flex items-center gap-2">
           {player.team_abbrev ? <TeamLogo abbrev={String(player.team_abbrev)} size={34} /> : null}
           {player.full_name}
-          <FavoriteButton
-            kind="player"
-            refId={String(player.player_id)}
-            initial={favorited}
-            signedIn={Boolean(userId)}
-            label={String(player.full_name)}
-          />
         </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
           {isGoalie ? "Goalie" : player.position} · {player.team_name ?? player.team_abbrev ?? "—"}
@@ -110,6 +103,14 @@ export default async function PlayerPage({
             {birthday.text}
           </p>
         )}
+        <div className="mt-2">
+          <FavoriteButton
+            kind="player"
+            refId={String(player.player_id)}
+            initial={favorited}
+            signedIn={Boolean(userId)}
+          />
+        </div>
         </div>
       </section>
 
