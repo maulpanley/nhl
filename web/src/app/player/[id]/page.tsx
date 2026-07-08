@@ -212,6 +212,10 @@ export default async function PlayerPage({
                   <FormChart data={games} dataKey="points" name="Points" />
                 </div>
                 <div>
+                  <h3 className="text-sm font-medium mb-2">Goals by game</h3>
+                  <FormChart data={games} dataKey="goals" name="Goals" />
+                </div>
+                <div>
                   <h3 className="text-sm font-medium mb-2">Shots on goal by game</h3>
                   <FormChart data={games} dataKey="sog" name="Shots on goal" />
                 </div>

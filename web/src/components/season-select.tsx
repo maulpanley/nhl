@@ -27,7 +27,7 @@ export function SeasonSelect({ seasons }: { seasons: number[] }) {
         params.delete("from");
         params.delete("to");
         const q = params.toString();
-        router.push(q ? `${pathname}?${q}` : pathname);
+        router.push(q ? `${pathname}?${q}` : pathname, { scroll: false });
       }}
     >
       <option value="">All seasons</option>

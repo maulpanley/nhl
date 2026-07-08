@@ -134,6 +134,7 @@ export function FilterRow({ state, seasons }: { state: FilterState; seasons?: nu
         <Link
           key={f.key}
           href={buildQuery({ ...state, filter: f }, {})}
+          scroll={false}
           className={`filter-pill${f.key === state.filter.key ? " active" : ""}`}
         >
           {f.label}
@@ -150,6 +151,7 @@ export function FilterRow({ state, seasons }: { state: FilterState; seasons?: nu
         <Link
           key={v.key}
           href={buildQuery(state, { venue: v.key === "all" ? undefined : v.key })}
+          scroll={false}
           className={`filter-pill${state.venue === v.key ? " active" : ""}`}
         >
           {v.label}
@@ -158,6 +160,7 @@ export function FilterRow({ state, seasons }: { state: FilterState; seasons?: nu
       <span className="filter-divider" />
       <Link
         href={buildQuery(state, { last: "0", from: undefined, to: undefined })}
+        scroll={false}
         className={`filter-pill${allTimeActive ? " active" : ""}`}
       >
         All time
@@ -166,6 +169,7 @@ export function FilterRow({ state, seasons }: { state: FilterState; seasons?: nu
         <Link
           key={n}
           href={buildQuery(state, { last: String(n), from: undefined, to: undefined })}
+          scroll={false}
           className={`filter-pill${state.lastN === n ? " active" : ""}`}
         >
           Last {n}
