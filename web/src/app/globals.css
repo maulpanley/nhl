@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+:root {
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --series-3: #eda100;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --series-1: #3987e5;
+    --series-2: #199e70;
+    --series-3: #c98500;
+  }
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.stat-table {
+  width: 100%;
+  font-size: 0.85rem;
+  border-collapse: collapse;
+}
+.stat-table th {
+  text-align: left;
+  color: var(--ink-muted);
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+}
+.stat-table td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--grid);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.stat-table tr:last-child td {
+  border-bottom: none;
+}
+.stat-table a,
+a.plain-link {
+  color: var(--series-1);
+}
+
+.viz-tooltip {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.viz-tooltip-label {
+  color: var(--ink-muted);
+  margin-bottom: 0.25rem;
+}
+.viz-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.viz-tooltip-row strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.viz-tooltip-row .name {
+  color: var(--ink-2);
+}
+.viz-key {
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  border-radius: 1.5px;
+}
+.viz-key.swatch {
+  height: 10px;
+  border-radius: 2px;
+}
+
+.viz-legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  margin-bottom: 0.25rem;
+  align-items: center;
+}
+.viz-legend span.entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
