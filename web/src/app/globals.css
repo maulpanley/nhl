@@ -105,6 +105,27 @@ a.plain-link {
   border-radius: 2px;
 }
 
+.tile-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+}
+.stat-tile {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+}
+.stat-tile .label {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+.stat-tile .value {
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
 .filter-row {
   display: flex;
   gap: 0.5rem;

@@ -17,6 +17,19 @@ const TYPE_FILTERS = [
   { key: "playoffs", label: "Playoffs", gameType: 3 },
 ] as const;
 
+function StatTile({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="stat-tile">
+      <div className="label">{label}</div>
+      <div className="value">{value}</div>
+    </div>
+  );
+}
+
+function sum(rows: Record<string, unknown>[], key: string) {
+  return rows.reduce((a, r) => a + Number(r[key] ?? 0), 0);
+}
+
 function fmtToi(seconds: unknown) {
   if (seconds == null) return "—";
   const s = Number(seconds);
@@ -72,6 +85,32 @@ export default async function PlayerVsTeamPage({
             {f.label}
           </Link>
         ))}
+      </div>
+
+      <div className="tile-row">
+        <StatTile label="Meetings" value={games.length} />
+        {isGoalie ? (
+          <>
+            <StatTile label="Shots against" value={sum(games, "shots_against").toLocaleString()} />
+            <StatTile label="Saves" value={sum(games, "saves").toLocaleString()} />
+            <StatTile label="Goals against" value={sum(games, "goals_against")} />
+            <StatTile
+              label="Save %"
+              value={
+                sum(games, "shots_against") > 0
+                  ? (sum(games, "saves") / sum(games, "shots_against")).toFixed(3)
+                  : "—"
+              }
+            />
+          </>
+        ) : (
+          <>
+            <StatTile label="Goals" value={sum(games, "goals")} />
+            <StatTile label="Assists" value={sum(games, "assists")} />
+            <StatTile label="Points" value={sum(games, "points")} />
+            <StatTile label="Shots on goal" value={sum(games, "sog").toLocaleString()} />
+          </>
+        )}
       </div>
 
       {games.length > 0 && (
