@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MeetingBarChart, SavePctChart } from "@/components/charts";
+import { TeamLogo } from "@/components/team-logo";
 import {
   getPlayer,
   getTeam,
@@ -10,6 +11,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const TYPE_FILTERS = [
+  { key: "all", label: "All games", gameType: null },
+  { key: "regular", label: "Regular season", gameType: 2 },
+  { key: "playoffs", label: "Playoffs", gameType: 3 },
+] as const;
+
 function fmtToi(seconds: unknown) {
   if (seconds == null) return "—";
   const s = Number(seconds);
@@ -18,17 +25,22 @@ function fmtToi(seconds: unknown) {
 
 export default async function PlayerVsTeamPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; team: string }>;
+  searchParams: Promise<{ type?: string }>;
 }) {
-  const { id, team } = await params;
+  const [{ id, team }, { type }] = await Promise.all([params, searchParams]);
+  const filter = TYPE_FILTERS.find((f) => f.key === type) ?? TYPE_FILTERS[0];
+
   const [player, opponent] = await Promise.all([getPlayer(Number(id)), getTeam(team)]);
   if (!player || !opponent) notFound();
   const isGoalie = player.position === "G";
 
   const games = isGoalie
-    ? await goalieVsTeamGames(player.player_id, Number(opponent.team_id))
-    : await skaterVsTeamGames(player.player_id, Number(opponent.team_id));
+    ? await goalieVsTeamGames(player.player_id, Number(opponent.team_id), filter.gameType)
+    : await skaterVsTeamGames(player.player_id, Number(opponent.team_id), filter.gameType);
+  const playoffCount = games.filter((g) => Number(g.game_type) === 3).length;
 
   return (
     <>
@@ -38,11 +50,29 @@ export default async function PlayerVsTeamPage({
             {player.full_name}
           </Link>
         </p>
-        <h1 className="text-xl font-semibold">vs. {opponent.full_name}</h1>
+        <h1 className="text-xl font-semibold flex items-center gap-2">
+          <TeamLogo abbrev={String(opponent.abbrev)} size={34} />
+          vs. {opponent.full_name}
+        </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
-          {games.length} meetings in database
+          {games.length} meetings
+          {filter.gameType === null && playoffCount > 0
+            ? ` (${games.length - playoffCount} regular season, ${playoffCount} playoffs)`
+            : ` (${filter.label.toLowerCase()})`}
         </p>
       </section>
+
+      <div className="filter-row">
+        {TYPE_FILTERS.map((f) => (
+          <Link
+            key={f.key}
+            href={f.key === "all" ? "?" : `?type=${f.key}`}
+            className={`filter-pill${f.key === filter.key ? " active" : ""}`}
+          >
+            {f.label}
+          </Link>
+        ))}
+      </div>
 
       {games.length > 0 && (
         <section className="card">
@@ -78,11 +108,11 @@ export default async function PlayerVsTeamPage({
           <thead>
             {isGoalie ? (
               <tr>
-                <th>Date</th><th>H/A</th><th>SA</th><th>Saves</th><th>GA</th><th>SV%</th><th>Result</th>
+                <th>Date</th><th>Type</th><th>Venue</th><th>SA</th><th>Saves</th><th>GA</th><th>SV%</th><th>Result</th>
               </tr>
             ) : (
               <tr>
-                <th>Date</th><th>H/A</th><th>G</th><th>A</th><th>P</th><th>SOG</th><th>Hits</th><th>TOI</th>
+                <th>Date</th><th>Type</th><th>Venue</th><th>G</th><th>A</th><th>P</th><th>SOG</th><th>Hits</th><th>TOI</th>
               </tr>
             )}
           </thead>
@@ -90,7 +120,14 @@ export default async function PlayerVsTeamPage({
             {games.map((g) => (
               <tr key={String(g.game_date)}>
                 <td>{String(g.game_date)}</td>
-                <td>{g.is_home ? "H" : "A"}</td>
+                <td>
+                  {Number(g.game_type) === 3 ? (
+                    <span className="type-badge playoffs">Playoffs</span>
+                  ) : (
+                    <span className="type-badge">Regular</span>
+                  )}
+                </td>
+                <td>{g.is_home ? "Home" : "Away"}</td>
                 {isGoalie ? (
                   <>
                     <td>{String(g.shots_against)}</td>

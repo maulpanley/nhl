@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TeamLogo } from "@/components/team-logo";
 import { getTeam, teamRecentGames, teamTopScorers } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,10 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
   return (
     <>
       <section className="card">
-        <h1 className="text-xl font-semibold">{team.full_name}</h1>
+        <h1 className="text-xl font-semibold flex items-center gap-2">
+          <TeamLogo abbrev={String(team.abbrev)} size={36} />
+          {team.full_name}
+        </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
           {team.abbrev}
         </p>
@@ -55,7 +59,7 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
         <table className="stat-table">
           <thead>
             <tr>
-              <th>Date</th><th>H/A</th><th>Opponent</th><th>Score</th><th>Result</th>
+              <th>Date</th><th>Type</th><th>Opponent</th><th>Score</th><th>Result</th>
             </tr>
           </thead>
           <tbody>
@@ -65,8 +69,19 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
               return (
                 <tr key={String(g.game_date) + String(g.opp)}>
                   <td>{String(g.game_date)}</td>
-                  <td>{String(g.ha)}</td>
-                  <td>{String(g.opp)}</td>
+                  <td>
+                    {Number(g.game_type) === 3 ? (
+                      <span className="type-badge playoffs">Playoffs</span>
+                    ) : (
+                      <span className="type-badge">Regular</span>
+                    )}
+                  </td>
+                  <td>
+                    <span className="inline-flex items-center gap-1.5">
+                      {g.ha === "H" ? "vs" : "@"} <TeamLogo abbrev={String(g.opp)} size={18} />
+                      {String(g.opp)}
+                    </span>
+                  </td>
                   <td>
                     {gf}–{ga}
                   </td>

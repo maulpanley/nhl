@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TeamLogo } from "@/components/team-logo";
 import { activeTeams, dbCounts, searchPlayers, topScorers } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -105,7 +106,8 @@ export default async function Home({
           <ul className="text-sm columns-2" style={{ columnGap: "1rem" }}>
             {teams.map((t) => (
               <li key={String(t.abbrev)} className="py-0.5">
-                <Link href={`/team/${t.abbrev}`} className="plain-link">
+                <Link href={`/team/${t.abbrev}`} className="plain-link inline-flex items-center gap-1.5">
+                  <TeamLogo abbrev={String(t.abbrev)} size={18} />
                   {String(t.full_name)}
                 </Link>
               </li>

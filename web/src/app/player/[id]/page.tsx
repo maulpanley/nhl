@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormChart, SavePctChart } from "@/components/charts";
+import { TeamLogo } from "@/components/team-logo";
 import {
   getPlayer,
   goalieRecentGames,
@@ -32,7 +33,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   return (
     <>
       <section className="card">
-        <h1 className="text-xl font-semibold">{player.full_name}</h1>
+        <h1 className="text-xl font-semibold flex items-center gap-2">
+          {player.team_abbrev ? <TeamLogo abbrev={String(player.team_abbrev)} size={34} /> : null}
+          {player.full_name}
+        </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
           {isGoalie ? "Goalie" : player.position} · {player.team_name ?? player.team_abbrev ?? "—"}
         </p>
@@ -77,7 +81,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             {vsTeams.map((r) => (
               <tr key={String(r.opp)}>
                 <td>
-                  <Link href={`/player/${player.player_id}/vs/${r.opp}`}>{String(r.opp_name)}</Link>
+                  <Link href={`/player/${player.player_id}/vs/${r.opp}`} className="inline-flex items-center gap-1.5">
+                    <TeamLogo abbrev={String(r.opp)} size={18} />
+                    {String(r.opp_name)}
+                  </Link>
                 </td>
                 <td>{String(r.games)}</td>
                 {isGoalie ? (

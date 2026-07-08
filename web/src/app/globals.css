@@ -105,6 +105,34 @@ a.plain-link {
   border-radius: 2px;
 }
 
+.filter-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.filter-pill {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--axis);
+  color: var(--ink-2);
+  background: var(--surface-1);
+}
+.filter-pill.active {
+  border-color: var(--series-1);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.type-badge {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+.type-badge.playoffs {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .viz-legend {
   display: flex;
   gap: 1rem;

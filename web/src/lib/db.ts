@@ -96,23 +96,26 @@ export async function goalieVsTeams(playerId: number) {
   `;
 }
 
-/** Every meeting between a skater and one opponent, oldest first. */
-export async function skaterVsTeamGames(playerId: number, teamId: number) {
+/** Every meeting between a skater and one opponent, oldest first.
+    gameType: 2=regular season, 3=playoffs, null=both. */
+export async function skaterVsTeamGames(playerId: number, teamId: number, gameType: number | null = null) {
   return (await sql`
     SELECT s.game_date::text, s.season, s.game_type, s.is_home,
            s.goals, s.assists, s.points, s.sog, s.hits, s.pim, s.toi_seconds
     FROM skater_game_stats s
     WHERE s.player_id = ${playerId} AND s.opponent_team_id = ${teamId}
+      AND (${gameType}::int IS NULL OR s.game_type = ${gameType})
     ORDER BY s.game_date ASC
   `) as Record<string, never>[];
 }
 
-export async function goalieVsTeamGames(playerId: number, teamId: number) {
+export async function goalieVsTeamGames(playerId: number, teamId: number, gameType: number | null = null) {
   return (await sql`
     SELECT g.game_date::text, g.season, g.game_type, g.is_home,
            g.shots_against, g.saves, g.goals_against, g.save_pct, g.decision, g.starter
     FROM goalie_game_stats g
     WHERE g.player_id = ${playerId} AND g.opponent_team_id = ${teamId}
+      AND (${gameType}::int IS NULL OR g.game_type = ${gameType})
     ORDER BY g.game_date ASC
   `) as Record<string, never>[];
 }
