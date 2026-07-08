@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TeamLogo } from "@/components/team-logo";
 import { UpcomingGames } from "@/components/upcoming-games";
+import { YourFavorites } from "@/components/your-favorites";
 import { activeTeams, dbCounts, topScorers } from "@/lib/db";
 
 // Data changes nightly; rebuild the page at most every 30 minutes.
@@ -34,6 +35,8 @@ export default async function Home() {
           </button>
         </form>
       </section>
+
+      <YourFavorites />
 
       <UpcomingGames />
 

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TeamLogo } from "@/components/team-logo";
-import { getTeam, teamOpponentIndex, teamRecentGames, teamTopScorers } from "@/lib/db";
+import { auth } from "@/auth";
+import { FavoriteButton } from "@/components/favorite-button";
+import { getTeam, isFavorite, teamOpponentIndex, teamRecentGames, teamTopScorers } from "@/lib/db";
 
 // Data changes nightly; cache each team page for 30 minutes.
 export const revalidate = 1800;
@@ -22,11 +24,14 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
   if (!team) notFound();
   
 
-  const [recent, scorers, opponents] = await Promise.all([
+  const [recent, scorers, opponents, session] = await Promise.all([
     teamRecentGames(String(team.abbrev)),
     teamTopScorers(String(team.abbrev)),
     teamOpponentIndex(String(team.abbrev)),
+    auth(),
   ]);
+  const userId = session?.user?.id;
+  const favorited = userId ? await isFavorite(userId, "team", String(team.abbrev)) : false;
 
   return (
     <>
@@ -34,6 +39,13 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
         <h1 className="text-xl font-semibold flex items-center gap-2">
           <TeamLogo abbrev={String(team.abbrev)} size={36} />
           {team.full_name}
+          <FavoriteButton
+            kind="team"
+            refId={String(team.abbrev)}
+            initial={favorited}
+            signedIn={Boolean(userId)}
+            label={String(team.full_name)}
+          />
         </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
           {team.abbrev}

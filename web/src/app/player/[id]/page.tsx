@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormChart, SavePctChart } from "@/components/charts";
+import { auth } from "@/auth";
+import { FavoriteButton } from "@/components/favorite-button";
 import { FilterRow, applyRange, parseFilters, type FilterParams } from "@/components/filters";
 import { StatTile } from "@/components/stat-tile";
 import { TeamLogo } from "@/components/team-logo";
+import { isFavorite } from "@/lib/db";
 import {
   getPlayer,
   goalieAllGames,
@@ -65,6 +68,10 @@ export default async function PlayerPage({
   const games = applyRange(allGames, state);
   const seasonOptions = [...new Set(allGames.map((g) => Number(g.season)))].sort((a, b) => b - a);
 
+  const session = await auth();
+  const userId = session?.user?.id;
+  const favorited = userId ? await isFavorite(userId, "player", String(player.player_id)) : false;
+
   const career = landing?.careerTotals?.regularSeason;
   const milestones = career && !isGoalie ? nearMilestones(career) : [];
   const birthday = birthdayInfo(landing?.birthDate);
@@ -87,6 +94,13 @@ export default async function PlayerPage({
         <h1 className="text-xl font-semibold flex items-center gap-2">
           {player.team_abbrev ? <TeamLogo abbrev={String(player.team_abbrev)} size={34} /> : null}
           {player.full_name}
+          <FavoriteButton
+            kind="player"
+            refId={String(player.player_id)}
+            initial={favorited}
+            signedIn={Boolean(userId)}
+            label={String(player.full_name)}
+          />
         </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
           {isGoalie ? "Goalie" : player.position} · {player.team_name ?? player.team_abbrev ?? "—"}

@@ -20,8 +20,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Database sessions: `user` is the adapter row, so tier comes straight
     // from our users table.
     session({ session, user }) {
-      (session.user as { tier?: string }).tier =
-        (user as { tier?: string }).tier ?? "free";
+      const u = session.user as { id?: string; tier?: string };
+      u.id = String(user.id);
+      u.tier = (user as { tier?: string }).tier ?? "free";
       return session;
     },
   },

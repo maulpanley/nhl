@@ -240,6 +240,34 @@ a.plain-link {
   font-size: 0.85rem;
   font-weight: 500;
 }
+
+.fav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--ink-muted);
+  padding: 0 0.15rem;
+}
+.fav-btn.on {
+  color: var(--series-3);
+}
+.fav-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.fav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--ink);
+}
 .filter-pill {
   font-size: 0.8rem;
   padding: 0.3rem 0.75rem;

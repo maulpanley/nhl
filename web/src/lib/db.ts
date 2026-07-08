@@ -336,6 +336,49 @@ export async function leagueGoalsPerTeamGame() {
   return Number(rows[0].goals);
 }
 
+/* ---- Favorites (personalization) ---- */
+
+export async function isFavorite(userId: string, kind: string, ref: string) {
+  const r = await sql`
+    SELECT 1 FROM favorites WHERE "userId" = ${Number(userId)} AND kind = ${kind} AND ref = ${ref} LIMIT 1
+  `;
+  return r.length > 0;
+}
+
+export async function addFavorite(userId: string, kind: string, ref: string) {
+  await sql`
+    INSERT INTO favorites ("userId", kind, ref) VALUES (${Number(userId)}, ${kind}, ${ref})
+    ON CONFLICT DO NOTHING
+  `;
+}
+
+export async function removeFavorite(userId: string, kind: string, ref: string) {
+  await sql`
+    DELETE FROM favorites WHERE "userId" = ${Number(userId)} AND kind = ${kind} AND ref = ${ref}
+  `;
+}
+
+export async function favoritePlayers(userId: string) {
+  return await sql`
+    SELECT p.player_id, p.full_name, p.position, t.abbrev AS team_abbrev
+    FROM favorites f
+    JOIN players p ON p.player_id::text = f.ref
+    LEFT JOIN teams t ON t.team_id = p.current_team_id
+    WHERE f."userId" = ${Number(userId)} AND f.kind = 'player'
+    ORDER BY p.full_name
+  `;
+}
+
+export async function favoriteTeams(userId: string) {
+  return await sql`
+    SELECT DISTINCT ON (t.abbrev) t.abbrev, t.full_name
+    FROM favorites f
+    JOIN teams t ON t.abbrev = f.ref
+    WHERE f."userId" = ${Number(userId)} AND f.kind = 'team'
+    ORDER BY t.abbrev, t.team_id DESC
+  `;
+}
+
 export async function allPlayerIds() {
   return (await sql`SELECT player_id FROM players ORDER BY player_id`) as { player_id: number }[];
 }
