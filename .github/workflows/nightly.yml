@@ -1,0 +1,23 @@
+name: Nightly NHL ingest
+
+on:
+  schedule:
+    # 10:00 UTC ≈ 5-6am ET — well after the last west-coast game ends.
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Ingest new final games
+        run: uv run nhl update
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Enrich player names
+        run: uv run nhl enrich-players --limit 100
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
