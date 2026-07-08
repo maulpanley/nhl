@@ -67,19 +67,25 @@ export function FormChart({
   window?: number;
   height?: number;
 }) {
+  // Past ~120 games individual bars are sub-pixel noise; show only the
+  // rolling trend line (with a wider window).
+  const dense = data.length > 120;
+  const effWindow = dense ? Math.max(window, 10) : window;
   const rows = data.map((r, i) => {
-    const slice = data.slice(Math.max(0, i - window + 1), i + 1);
+    const slice = data.slice(Math.max(0, i - effWindow + 1), i + 1);
     const avg = slice.reduce((a, s) => a + Number(s[dataKey] ?? 0), 0) / slice.length;
     return { ...r, rolling: Math.round(avg * 100) / 100 };
   });
-  const rollingName = `${window}-game avg`;
+  const rollingName = `${effWindow}-game avg`;
   return (
     <div>
       <div className="viz-legend">
-        <span className="entry">
-          <span className="viz-key swatch" style={{ background: "var(--series-1)" }} />
-          {name}
-        </span>
+        {!dense && (
+          <span className="entry">
+            <span className="viz-key swatch" style={{ background: "var(--series-1)" }} />
+            {name}
+          </span>
+        )}
         <span className="entry">
           <span className="viz-key" style={{ background: "var(--series-3)" }} />
           {rollingName}
@@ -98,7 +104,9 @@ export function FormChart({
           />
           <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip content={<VizTooltip />} cursor={{ stroke: "var(--axis)", strokeWidth: 1 }} />
-          <Bar isAnimationActive={false} dataKey={dataKey} name={name} fill="var(--series-1)" maxBarSize={24} radius={[4, 4, 0, 0]} />
+          {!dense && (
+            <Bar isAnimationActive={false} dataKey={dataKey} name={name} fill="var(--series-1)" maxBarSize={24} radius={[4, 4, 0, 0]} />
+          )}
           <Line
             isAnimationActive={false}
             dataKey="rolling"
@@ -151,6 +159,7 @@ export function MeetingBarChart({
 /** Save % per game — line with surface-ringed dots. One series → no legend. */
 export function SavePctChart({ data, height = 220 }: { data: Row[]; height?: number }) {
   const fmt = (v: number) => v.toFixed(3);
+  const dense = data.length > 60;
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -10 }}>
@@ -180,7 +189,7 @@ export function SavePctChart({ data, height = 220 }: { data: Row[]; height?: num
           strokeLinejoin="round"
           strokeLinecap="round"
           type="monotone"
-          dot={{ r: 4, fill: "var(--series-1)", stroke: "var(--surface-1)", strokeWidth: 2 }}
+          dot={dense ? false : { r: 4, fill: "var(--series-1)", stroke: "var(--surface-1)", strokeWidth: 2 }}
           activeDot={{ r: 5, stroke: "var(--surface-1)", strokeWidth: 2 }}
         />
       </ComposedChart>

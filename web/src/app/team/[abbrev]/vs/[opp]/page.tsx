@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormChart } from "@/components/charts";
+import { FilterRow, applyRange, parseFilters, type FilterParams } from "@/components/filters";
 import { StatTile, dir, pctDelta } from "@/components/stat-tile";
 import { TeamLogo } from "@/components/team-logo";
 import { getTeam, teamVsTeamGames } from "@/lib/db";
@@ -22,45 +23,24 @@ export async function generateMetadata({
   };
 }
 
-const TYPE_FILTERS = [
-  { key: "all", label: "All games", gameType: null },
-  { key: "regular", label: "Regular season", gameType: 2 },
-  { key: "playoffs", label: "Playoffs", gameType: 3 },
-] as const;
-
-const LAST_N_OPTIONS = [5, 10, 20] as const;
-
-function isIsoDate(s: string | undefined): s is string {
-  return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
-}
-
 export default async function TeamVsTeamPage({
   params,
   searchParams,
 }: {
   params: Promise<{ abbrev: string; opp: string }>;
-  searchParams: Promise<{ type?: string; last?: string; from?: string; to?: string }>;
+  searchParams: Promise<FilterParams>;
 }) {
-  const [{ abbrev, opp }, { type, last, from, to }] = await Promise.all([params, searchParams]);
-  const filter = TYPE_FILTERS.find((f) => f.key === type) ?? TYPE_FILTERS[0];
-  const fromDate = isIsoDate(from) ? from : undefined;
-  const toDate = isIsoDate(to) ? to : undefined;
-  const lastN =
-    !fromDate && !toDate && last && LAST_N_OPTIONS.includes(Number(last) as 5 | 10 | 20)
-      ? Number(last)
-      : undefined;
+  const [{ abbrev, opp }, sp] = await Promise.all([params, searchParams]);
+  const state = parseFilters(sp, [5, 10, 20], { noun: "meetings" });
 
   const [teamA, teamB] = await Promise.all([getTeam(abbrev), getTeam(opp)]);
   if (!teamA || !teamB || teamA.abbrev === teamB.abbrev) notFound();
   const a = String(teamA.abbrev);
   const b = String(teamB.abbrev);
 
-  const allGames = await teamVsTeamGames(a, b, filter.gameType);
-  let games = allGames;
-  const totalMeetings = games.length;
-  if (fromDate) games = games.filter((g) => String(g.game_date) >= fromDate);
-  if (toDate) games = games.filter((g) => String(g.game_date) <= toDate);
-  if (lastN) games = games.slice(-lastN);
+  const allGames = await teamVsTeamGames(a, b, state.filter.gameType);
+  const games = applyRange(allGames, state);
+  const totalMeetings = allGames.length;
 
   const aWins = games.filter((g) => Number(g.gf) > Number(g.ga)).length;
   const bWins = games.filter((g) => Number(g.gf) < Number(g.ga)).length;
@@ -72,20 +52,6 @@ export default async function TeamVsTeamPage({
     aWins: allGames.filter((g) => Number(g.gf) > Number(g.ga)).length,
     games: allGames.length,
   });
-
-  const query = (overrides: Record<string, string | undefined>) => {
-    const p = new URLSearchParams();
-    const merged = { type: filter.key === "all" ? undefined : filter.key, last, from: fromDate, to: toDate, ...overrides };
-    for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
-    const s = p.toString();
-    return s ? `?${s}` : "?";
-  };
-
-  const rangeLabel = lastN
-    ? `last ${lastN} meetings`
-    : fromDate || toDate
-      ? `${fromDate ?? "…"} to ${toDate ?? "…"}`
-      : "all time";
 
   return (
     <>
@@ -104,49 +70,15 @@ export default async function TeamVsTeamPage({
           </Link>
         </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
-          Showing {games.length} of {totalMeetings} meetings · {filter.label.toLowerCase()} · {rangeLabel}
-          {filter.gameType === null && playoffCount > 0
+          Showing {games.length} of {totalMeetings} meetings · {state.filter.label.toLowerCase()} ·{" "}
+          {state.rangeLabel}
+          {state.filter.gameType === null && playoffCount > 0
             ? ` (${games.length - playoffCount} regular season, ${playoffCount} playoffs)`
             : ""}
         </p>
       </section>
 
-      <div className="filter-row flex-wrap">
-        {TYPE_FILTERS.map((f) => (
-          <Link
-            key={f.key}
-            href={query({ type: f.key === "all" ? undefined : f.key })}
-            className={`filter-pill${f.key === filter.key ? " active" : ""}`}
-          >
-            {f.label}
-          </Link>
-        ))}
-        <span className="filter-divider" />
-        <Link
-          href={query({ last: undefined, from: undefined, to: undefined })}
-          className={`filter-pill${!lastN && !fromDate && !toDate ? " active" : ""}`}
-        >
-          All time
-        </Link>
-        {LAST_N_OPTIONS.map((n) => (
-          <Link
-            key={n}
-            href={query({ last: String(n), from: undefined, to: undefined })}
-            className={`filter-pill${lastN === n ? " active" : ""}`}
-          >
-            Last {n}
-          </Link>
-        ))}
-        <form method="GET" className="filter-range-form">
-          {filter.key !== "all" && <input type="hidden" name="type" value={filter.key} />}
-          <input type="date" name="from" defaultValue={fromDate ?? ""} aria-label="From date" />
-          <span style={{ color: "var(--ink-muted)" }}>–</span>
-          <input type="date" name="to" defaultValue={toDate ?? ""} aria-label="To date" />
-          <button type="submit" className={`filter-pill${fromDate || toDate ? " active" : ""}`}>
-            Apply
-          </button>
-        </form>
-      </div>
+      <FilterRow state={state} />
 
       <div className="tile-row">
         <StatTile label="Meetings" value={games.length} />

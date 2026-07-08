@@ -8,6 +8,7 @@ import {
   goalieVsTeamGames,
   skaterVsTeamGames,
 } from "@/lib/db";
+import { FilterRow, applyRange, parseFilters, type FilterParams } from "@/components/filters";
 import { StatTile, dir, pctDelta } from "@/components/stat-tile";
 import { goalieOutlook, skaterOutlook } from "@/lib/metrics";
 
@@ -27,12 +28,6 @@ export async function generateMetadata({
   };
 }
 
-const TYPE_FILTERS = [
-  { key: "all", label: "All games", gameType: null },
-  { key: "regular", label: "Regular season", gameType: 2 },
-  { key: "playoffs", label: "Playoffs", gameType: 3 },
-] as const;
-
 function sum(rows: Record<string, unknown>[], key: string) {
   return rows.reduce((a, r) => a + Number(r[key] ?? 0), 0);
 }
@@ -43,28 +38,15 @@ function fmtToi(seconds: unknown) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-const LAST_N_OPTIONS = [5, 10, 20] as const;
-
-function isIsoDate(s: string | undefined): s is string {
-  return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
-}
-
 export default async function PlayerVsTeamPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string; team: string }>;
-  searchParams: Promise<{ type?: string; last?: string; from?: string; to?: string }>;
+  searchParams: Promise<FilterParams>;
 }) {
-  const [{ id, team }, { type, last, from, to }] = await Promise.all([params, searchParams]);
-  const filter = TYPE_FILTERS.find((f) => f.key === type) ?? TYPE_FILTERS[0];
-  const fromDate = isIsoDate(from) ? from : undefined;
-  const toDate = isIsoDate(to) ? to : undefined;
-  // A date range and "last N" are mutually exclusive; the range wins.
-  const lastN =
-    !fromDate && !toDate && last && LAST_N_OPTIONS.includes(Number(last) as 5 | 10 | 20)
-      ? Number(last)
-      : undefined;
+  const [{ id, team }, sp] = await Promise.all([params, searchParams]);
+  const state = parseFilters(sp, [5, 10, 20], { noun: "meetings" });
 
   const [player, opponent] = await Promise.all([getPlayer(Number(id)), getTeam(team)]);
   if (!player || !opponent) notFound();
@@ -72,32 +54,15 @@ export default async function PlayerVsTeamPage({
 
   const [allGames, outlook] = await Promise.all([
     isGoalie
-      ? goalieVsTeamGames(player.player_id, String(opponent.abbrev), filter.gameType)
-      : skaterVsTeamGames(player.player_id, String(opponent.abbrev), filter.gameType),
+      ? goalieVsTeamGames(player.player_id, String(opponent.abbrev), state.filter.gameType)
+      : skaterVsTeamGames(player.player_id, String(opponent.abbrev), state.filter.gameType),
     isGoalie
       ? goalieOutlook(player.player_id, String(opponent.abbrev))
       : skaterOutlook(player.player_id, String(opponent.abbrev)),
   ]);
-  let games = allGames;
-  const totalMeetings = games.length;
-  if (fromDate) games = games.filter((g) => String(g.game_date) >= fromDate);
-  if (toDate) games = games.filter((g) => String(g.game_date) <= toDate);
-  if (lastN) games = games.slice(-lastN);
+  const games = applyRange(allGames, state);
+  const totalMeetings = allGames.length;
   const playoffCount = games.filter((g) => Number(g.game_type) === 3).length;
-
-  const query = (overrides: Record<string, string | undefined>) => {
-    const p = new URLSearchParams();
-    const merged = { type: filter.key === "all" ? undefined : filter.key, last, from: fromDate, to: toDate, ...overrides };
-    for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
-    const s = p.toString();
-    return s ? `?${s}` : "?";
-  };
-
-  const rangeLabel = lastN
-    ? `last ${lastN} meetings`
-    : fromDate || toDate
-      ? `${fromDate ?? "…"} to ${toDate ?? "…"}`
-      : "all time";
 
   return (
     <>
@@ -112,49 +77,15 @@ export default async function PlayerVsTeamPage({
           vs. {opponent.full_name}
         </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
-          Showing {games.length} of {totalMeetings} meetings · {filter.label.toLowerCase()} · {rangeLabel}
-          {filter.gameType === null && playoffCount > 0
+          Showing {games.length} of {totalMeetings} meetings · {state.filter.label.toLowerCase()} ·{" "}
+          {state.rangeLabel}
+          {state.filter.gameType === null && playoffCount > 0
             ? ` (${games.length - playoffCount} regular season, ${playoffCount} playoffs)`
             : ""}
         </p>
       </section>
 
-      <div className="filter-row flex-wrap">
-        {TYPE_FILTERS.map((f) => (
-          <Link
-            key={f.key}
-            href={query({ type: f.key === "all" ? undefined : f.key })}
-            className={`filter-pill${f.key === filter.key ? " active" : ""}`}
-          >
-            {f.label}
-          </Link>
-        ))}
-        <span className="filter-divider" />
-        <Link
-          href={query({ last: undefined, from: undefined, to: undefined })}
-          className={`filter-pill${!lastN && !fromDate && !toDate ? " active" : ""}`}
-        >
-          All time
-        </Link>
-        {LAST_N_OPTIONS.map((n) => (
-          <Link
-            key={n}
-            href={query({ last: String(n), from: undefined, to: undefined })}
-            className={`filter-pill${lastN === n ? " active" : ""}`}
-          >
-            Last {n}
-          </Link>
-        ))}
-        <form method="GET" className="filter-range-form">
-          {filter.key !== "all" && <input type="hidden" name="type" value={filter.key} />}
-          <input type="date" name="from" defaultValue={fromDate ?? ""} aria-label="From date" />
-          <span style={{ color: "var(--ink-muted)" }}>–</span>
-          <input type="date" name="to" defaultValue={toDate ?? ""} aria-label="To date" />
-          <button type="submit" className={`filter-pill${fromDate || toDate ? " active" : ""}`}>
-            Apply
-          </button>
-        </form>
-      </div>
+      <FilterRow state={state} />
 
       <div className="tile-row">
         <StatTile label="Meetings" value={games.length} />

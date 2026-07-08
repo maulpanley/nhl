@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormChart, SavePctChart } from "@/components/charts";
+import { FilterRow, applyRange, parseFilters, type FilterParams } from "@/components/filters";
+import { StatTile } from "@/components/stat-tile";
 import { TeamLogo } from "@/components/team-logo";
 import {
   getPlayer,
-  goalieRecentGames,
+  goalieAllGames,
   goalieVsTeams,
   seasonSummaries,
-  skaterRecentGames,
+  skaterAllGames,
   skaterVsTeams,
 } from "@/lib/db";
 import { birthdayInfo, fetchPlayerLanding, fetchPlayerNews, nearMilestones } from "@/lib/nhl";
 
-// Data changes nightly; cache each player page for 30 minutes.
-export const revalidate = 1800;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,19 +35,34 @@ function fmtSeason(s: number) {
   return `${str.slice(0, 4)}-${str.slice(6)}`;
 }
 
-export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+function sum(rows: Record<string, unknown>[], key: string) {
+  return rows.reduce((a, r) => a + Number(r[key] ?? 0), 0);
+}
+
+export default async function PlayerPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<FilterParams>;
+}) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const player = await getPlayer(Number(id));
   if (!player) notFound();
   const isGoalie = player.position === "G";
 
-  const [recent, vsTeams, seasons, landing, news] = await Promise.all([
-    isGoalie ? goalieRecentGames(player.player_id) : skaterRecentGames(player.player_id),
+  const state = parseFilters(sp, [10, 25, 82], { defaultLast: 25 });
+
+  const [allGames, vsTeams, seasons, landing, news] = await Promise.all([
+    isGoalie
+      ? goalieAllGames(player.player_id, state.filter.gameType)
+      : skaterAllGames(player.player_id, state.filter.gameType),
     isGoalie ? goalieVsTeams(player.player_id) : skaterVsTeams(player.player_id),
     seasonSummaries(player.player_id, isGoalie),
     fetchPlayerLanding(player.player_id),
     fetchPlayerNews(String(player.full_name)),
   ]);
+  const games = applyRange(allGames, state);
 
   const career = landing?.careerTotals?.regularSeason;
   const milestones = career && !isGoalie ? nearMilestones(career) : [];
@@ -139,20 +155,68 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
       )}
 
       <section className="card">
-        <h2 className="font-medium mb-2">
-          {isGoalie ? "Save % — last 25 starts" : "Recent form — last 25 games"}
-        </h2>
-        {recent.length === 0 ? (
-          <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-            No game data yet.
+        <h2 className="font-medium mb-1">Performance</h2>
+        <p className="text-sm mb-3" style={{ color: "var(--ink-2)" }}>
+          Showing {games.length.toLocaleString()} of {allGames.length.toLocaleString()} games ·{" "}
+          {state.filter.label.toLowerCase()} · {state.rangeLabel}
+        </p>
+        <FilterRow state={state} />
+        {games.length === 0 ? (
+          <p className="text-sm mt-3" style={{ color: "var(--ink-muted)" }}>
+            No games in this range.
           </p>
-        ) : isGoalie ? (
-          <SavePctChart data={recent} />
         ) : (
-          <div className="flex flex-col gap-5">
-            <FormChart data={recent} dataKey="points" name="Points" />
-            <FormChart data={recent} dataKey="sog" name="Shots on goal" />
-          </div>
+          <>
+            <div className="tile-row mt-4 mb-5">
+              <StatTile label="Games" value={games.length.toLocaleString()} />
+              {isGoalie ? (
+                <>
+                  <StatTile label="Shots against" value={sum(games, "shots_against").toLocaleString()} />
+                  <StatTile label="Saves" value={sum(games, "saves").toLocaleString()} />
+                  <StatTile label="Goals against" value={sum(games, "goals_against").toLocaleString()} />
+                  <StatTile
+                    label="Save %"
+                    value={
+                      sum(games, "shots_against") > 0
+                        ? (sum(games, "saves") / sum(games, "shots_against")).toFixed(3)
+                        : "—"
+                    }
+                  />
+                </>
+              ) : (
+                <>
+                  <StatTile label="Goals" value={sum(games, "goals").toLocaleString()} />
+                  <StatTile label="Assists" value={sum(games, "assists").toLocaleString()} />
+                  <StatTile label="Points" value={sum(games, "points").toLocaleString()} />
+                  <StatTile label="Shots on goal" value={sum(games, "sog").toLocaleString()} />
+                  <StatTile label="P/GP" value={(sum(games, "points") / games.length).toFixed(2)} />
+                </>
+              )}
+            </div>
+            {isGoalie ? (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Save % by game</h3>
+                  <SavePctChart data={games} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Goals against by game</h3>
+                  <FormChart data={games} dataKey="goals_against" name="Goals against" />
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Points by game</h3>
+                  <FormChart data={games} dataKey="points" name="Points" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Shots on goal by game</h3>
+                  <FormChart data={games} dataKey="sog" name="Shots on goal" />
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
 

@@ -51,28 +51,26 @@ export async function getTeam(abbrev: string) {
   return rows[0] ?? null;
 }
 
-/** Most recent N games for a skater, oldest first (chart-ready). */
-export async function skaterRecentGames(playerId: number, n = 25) {
+/** A skater's full game log (optionally one game type), oldest first. */
+export async function skaterAllGames(playerId: number, gameType: number | null = null) {
   return (await sql`
-    SELECT * FROM (
-      SELECT s.game_date::text, t.abbrev AS opp, s.is_home, s.goals, s.assists, s.points,
-             s.sog, s.hits, s.pim, s.plus_minus, s.toi_seconds, s.season, s.game_type
-      FROM skater_game_stats s JOIN teams t ON t.team_id = s.opponent_team_id
-      WHERE s.player_id = ${playerId}
-      ORDER BY s.game_date DESC LIMIT ${n}
-    ) sub ORDER BY game_date ASC
+    SELECT s.game_date::text, t.abbrev AS opp, s.is_home, s.goals, s.assists, s.points,
+           s.sog, s.hits, s.pim, s.plus_minus, s.toi_seconds, s.season, s.game_type
+    FROM skater_game_stats s JOIN teams t ON t.team_id = s.opponent_team_id
+    WHERE s.player_id = ${playerId}
+      AND (${gameType}::int IS NULL OR s.game_type = ${gameType})
+    ORDER BY s.game_date ASC
   `) as Record<string, never>[];
 }
 
-export async function goalieRecentGames(playerId: number, n = 25) {
+export async function goalieAllGames(playerId: number, gameType: number | null = null) {
   return (await sql`
-    SELECT * FROM (
-      SELECT g.game_date::text, t.abbrev AS opp, g.is_home, g.shots_against, g.saves,
-             g.goals_against, g.save_pct, g.decision, g.starter, g.season, g.game_type
-      FROM goalie_game_stats g JOIN teams t ON t.team_id = g.opponent_team_id
-      WHERE g.player_id = ${playerId}
-      ORDER BY g.game_date DESC LIMIT ${n}
-    ) sub ORDER BY game_date ASC
+    SELECT g.game_date::text, t.abbrev AS opp, g.is_home, g.shots_against, g.saves,
+           g.goals_against, g.save_pct, g.decision, g.starter, g.season, g.game_type
+    FROM goalie_game_stats g JOIN teams t ON t.team_id = g.opponent_team_id
+    WHERE g.player_id = ${playerId}
+      AND (${gameType}::int IS NULL OR g.game_type = ${gameType})
+    ORDER BY g.game_date ASC
   `) as Record<string, never>[];
 }
 
