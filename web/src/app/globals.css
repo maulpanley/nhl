@@ -181,6 +181,15 @@ a.plain-link {
 .filter-range-form button {
   cursor: pointer;
 }
+.filter-select {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--axis);
+  background: var(--surface-1);
+  color: var(--ink);
+  cursor: pointer;
+}
 .filter-pill {
   font-size: 0.8rem;
   padding: 0.3rem 0.75rem;

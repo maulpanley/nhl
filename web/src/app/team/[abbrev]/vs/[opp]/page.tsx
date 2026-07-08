@@ -40,6 +40,7 @@ export default async function TeamVsTeamPage({
 
   const allGames = await teamVsTeamGames(a, b, state.filter.gameType);
   const games = applyRange(allGames, state);
+  const seasons = [...new Set(allGames.map((g) => Number(g.season)))].sort((x, y) => y - x);
   const totalMeetings = allGames.length;
 
   const aWins = games.filter((g) => Number(g.gf) > Number(g.ga)).length;
@@ -78,7 +79,7 @@ export default async function TeamVsTeamPage({
         </p>
       </section>
 
-      <FilterRow state={state} />
+      <FilterRow state={state} seasons={seasons} />
 
       <div className="tile-row">
         <StatTile label="Meetings" value={games.length} />

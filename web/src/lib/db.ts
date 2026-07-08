@@ -229,7 +229,7 @@ export async function teamVsTeamGames(abbrevA: string, abbrevB: string, gameType
   return (await sql`
     WITH a AS (SELECT team_id FROM teams WHERE abbrev = ${abbrevA}),
          b AS (SELECT team_id FROM teams WHERE abbrev = ${abbrevB})
-    SELECT g.game_date::text, g.game_type,
+    SELECT g.game_date::text, g.game_type, g.season,
            CASE WHEN g.home_team_id IN (SELECT team_id FROM a) THEN true ELSE false END AS is_home,
            CASE WHEN g.home_team_id IN (SELECT team_id FROM a) THEN g.home_score ELSE g.away_score END AS gf,
            CASE WHEN g.home_team_id IN (SELECT team_id FROM a) THEN g.away_score ELSE g.home_score END AS ga

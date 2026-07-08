@@ -63,6 +63,7 @@ export default async function PlayerPage({
     fetchPlayerNews(String(player.full_name)),
   ]);
   const games = applyRange(allGames, state);
+  const seasonOptions = [...new Set(allGames.map((g) => Number(g.season)))].sort((a, b) => b - a);
 
   const career = landing?.careerTotals?.regularSeason;
   const milestones = career && !isGoalie ? nearMilestones(career) : [];
@@ -160,7 +161,7 @@ export default async function PlayerPage({
           Showing {games.length.toLocaleString()} of {allGames.length.toLocaleString()} games ·{" "}
           {state.filter.label.toLowerCase()} · {state.venueLabel} · {state.rangeLabel}
         </p>
-        <FilterRow state={state} />
+        <FilterRow state={state} seasons={seasonOptions} />
         {games.length === 0 ? (
           <p className="text-sm mt-3" style={{ color: "var(--ink-muted)" }}>
             No games in this range.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SeasonSelect } from "@/components/season-select";
 
 export const TYPE_FILTERS = [
   { key: "all", label: "All games", gameType: null },
@@ -14,6 +15,7 @@ export type FilterParams = {
   from?: string;
   to?: string;
   venue?: string;
+  season?: string;
 };
 
 export const VENUE_FILTERS = [
@@ -34,10 +36,16 @@ export type FilterState = {
   rawLast?: string; // the URL's own `last` value, preserved across type switches
   venue: "all" | "home" | "away";
   venueLabel: string;
+  season?: number;
 };
 
 function isIsoDate(s: string | undefined): s is string {
   return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+export function fmtSeason(s: number) {
+  const str = String(s);
+  return `${str.slice(0, 4)}-${str.slice(6)}`;
 }
 
 /** Parse type + range search params. `defaultLast` applies when the URL has
@@ -50,18 +58,24 @@ export function parseFilters(
   const filter = TYPE_FILTERS.find((f) => f.key === sp.type) ?? TYPE_FILTERS[0];
   const fromDate = isIsoDate(sp.from) ? sp.from : undefined;
   const toDate = isIsoDate(sp.to) ? sp.to : undefined;
+  const season = sp.season && /^\d{8}$/.test(sp.season) ? Number(sp.season) : undefined;
   const isDefault = !fromDate && !toDate && !sp.last;
   let lastN =
     !fromDate && !toDate && sp.last && lastOptions.includes(Number(sp.last))
       ? Number(sp.last)
       : undefined;
-  if (isDefault) lastN = defaultLast;
+  // A whole-season view is the default when a season is picked, so don't apply
+  // the page's default last-N in that case.
+  if (isDefault && !season) lastN = defaultLast;
   // "last=all" (or any non-option) with no dates means all time.
-  const rangeLabel = lastN
+  let rangeLabel = lastN
     ? `last ${lastN} ${noun}`
     : fromDate || toDate
       ? `${fromDate ?? "…"} to ${toDate ?? "…"}`
       : "all time";
+  if (season) {
+    rangeLabel = lastN || fromDate || toDate ? `${fmtSeason(season)} · ${rangeLabel}` : fmtSeason(season);
+  }
   const venue = sp.venue === "home" || sp.venue === "away" ? sp.venue : "all";
   const venueLabel = venue === "all" ? "home & away" : venue === "home" ? "home only" : "away only";
   return {
@@ -76,6 +90,7 @@ export function parseFilters(
     rawLast: sp.last,
     venue,
     venueLabel,
+    season,
   };
 }
 
@@ -87,6 +102,7 @@ export function buildQuery(s: FilterState, overrides: Record<string, string | un
     from: s.fromDate,
     to: s.toDate,
     venue: s.venue === "all" ? undefined : s.venue,
+    season: s.season ? String(s.season) : undefined,
     ...overrides,
   };
   for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
@@ -97,11 +113,12 @@ export function buildQuery(s: FilterState, overrides: Record<string, string | un
 /** Apply venue + date-range + last-N slices to rows already filtered by game
     type (rows must be oldest-first with game_date and is_home fields).
     Venue applies before last-N, so "last 10, home" = the last 10 home games. */
-export function applyRange<T extends { game_date?: unknown; is_home?: unknown }>(
+export function applyRange<T extends { game_date?: unknown; is_home?: unknown; season?: unknown }>(
   rows: T[],
   s: FilterState,
 ): T[] {
   let out = rows;
+  if (s.season) out = out.filter((r) => Number(r.season) === s.season);
   if (s.venue !== "all") out = out.filter((r) => Boolean(r.is_home) === (s.venue === "home"));
   if (s.fromDate) out = out.filter((r) => String(r.game_date) >= s.fromDate!);
   if (s.toDate) out = out.filter((r) => String(r.game_date) <= s.toDate!);
@@ -109,7 +126,7 @@ export function applyRange<T extends { game_date?: unknown; is_home?: unknown }>
   return out;
 }
 
-export function FilterRow({ state }: { state: FilterState }) {
+export function FilterRow({ state, seasons }: { state: FilterState; seasons?: number[] }) {
   const allTimeActive = !state.lastN && !state.fromDate && !state.toDate;
   return (
     <div className="filter-row flex-wrap">
@@ -122,6 +139,12 @@ export function FilterRow({ state }: { state: FilterState }) {
           {f.label}
         </Link>
       ))}
+      {seasons && seasons.length > 0 && (
+        <>
+          <span className="filter-divider" />
+          <SeasonSelect seasons={seasons} />
+        </>
+      )}
       <span className="filter-divider" />
       {VENUE_FILTERS.map((v) => (
         <Link
@@ -151,6 +174,7 @@ export function FilterRow({ state }: { state: FilterState }) {
       <form method="GET" className="filter-range-form">
         {state.filter.key !== "all" && <input type="hidden" name="type" value={state.filter.key} />}
         {state.venue !== "all" && <input type="hidden" name="venue" value={state.venue} />}
+        {state.season && <input type="hidden" name="season" value={String(state.season)} />}
         <input type="date" name="from" defaultValue={state.fromDate ?? ""} aria-label="From date" />
         <span style={{ color: "var(--ink-muted)" }}>–</span>
         <input type="date" name="to" defaultValue={state.toDate ?? ""} aria-label="To date" />

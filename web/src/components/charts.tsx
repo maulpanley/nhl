@@ -22,6 +22,24 @@ type Row = Record<string, unknown>;
 
 const AXIS_TICK = { fill: "var(--ink-muted)", fontSize: 11 } as const;
 
+/** Season-or-shorter ranges (≤ 82 games) get vertical labels showing (nearly)
+    every game; longer ranges keep recessive, auto-thinned horizontal ticks. */
+function xAxisRotation(count: number): {
+  interval: number | undefined;
+  angle: number;
+  textAnchor: "middle" | "end";
+  axisHeight: number;
+  extraHeight: number;
+  minTickGap: number;
+} {
+  if (count > 82) {
+    return { interval: undefined, angle: 0, textAnchor: "middle", axisHeight: 30, extraHeight: 0, minTickGap: 64 };
+  }
+  // Show every label up to ~41; above that, thin evenly so labels stay legible.
+  const interval = count <= 41 ? 0 : Math.ceil(count / 41) - 1;
+  return { interval, angle: -90, textAnchor: "end", axisHeight: 88, extraHeight: 66, minTickGap: 0 };
+}
+
 function shortDate(iso: string): string {
   const [y, m, d] = iso.split("-");
   return `${Number(m)}/${Number(d)}/${y.slice(2)}`;
@@ -100,6 +118,7 @@ export function FormChart({
     return { ...r, rolling: Math.round(avg * 100) / 100 };
   });
   const rollingName = `${effWindow}-game avg`;
+  const rot = xAxisRotation(data.length);
   return (
     <div>
       <div className="viz-legend">
@@ -112,7 +131,7 @@ export function FormChart({
           {rollingName}
         </span>
       </div>
-      <ResponsiveContainer width="100%" height={height}>
+      <ResponsiveContainer width="100%" height={height + rot.extraHeight}>
         <ComposedChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: -22 }}>
           <CartesianGrid stroke="var(--grid)" strokeWidth={1} vertical={false} />
           <XAxis
@@ -121,7 +140,11 @@ export function FormChart({
             tickFormatter={labelFor}
             tickLine={false}
             axisLine={{ stroke: "var(--axis)" }}
-            minTickGap={64}
+            interval={rot.interval}
+            angle={rot.angle}
+            textAnchor={rot.textAnchor}
+            height={rot.axisHeight}
+            minTickGap={rot.minTickGap}
           />
           <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip
@@ -167,8 +190,9 @@ export function SavePctChart({
   const fmt = (v: number) => v.toFixed(3);
   const dense = data.length > 60;
   const labelFor = makeGameLabeler(data, fixedOpp);
+  const rot = xAxisRotation(data.length);
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height + rot.extraHeight}>
       <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -10 }}>
         <CartesianGrid stroke="var(--grid)" strokeWidth={1} vertical={false} />
         <XAxis
@@ -177,7 +201,11 @@ export function SavePctChart({
           tickFormatter={labelFor}
           tickLine={false}
           axisLine={{ stroke: "var(--axis)" }}
-          minTickGap={64}
+          interval={rot.interval}
+          angle={rot.angle}
+          textAnchor={rot.textAnchor}
+          height={rot.axisHeight}
+          minTickGap={rot.minTickGap}
         />
         <YAxis
           tick={AXIS_TICK}

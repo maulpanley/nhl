@@ -61,6 +61,7 @@ export default async function PlayerVsTeamPage({
       : skaterOutlook(player.player_id, String(opponent.abbrev)),
   ]);
   const games = applyRange(allGames, state);
+  const seasons = [...new Set(allGames.map((g) => Number(g.season)))].sort((a, b) => b - a);
   const totalMeetings = allGames.length;
   const playoffCount = games.filter((g) => Number(g.game_type) === 3).length;
 
@@ -85,7 +86,7 @@ export default async function PlayerVsTeamPage({
         </p>
       </section>
 
-      <FilterRow state={state} />
+      <FilterRow state={state} seasons={seasons} />
 
       <div className="tile-row">
         <StatTile label="Meetings" value={games.length} />
