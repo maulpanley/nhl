@@ -11,9 +11,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <header className="max-w-4xl mx-auto px-4 pt-6 pb-2">
+        <header className="max-w-4xl mx-auto px-4 pt-6 pb-2 flex items-baseline gap-4">
           <Link href="/" className="font-semibold text-lg tracking-tight">
             NHL Trends
+          </Link>
+          <Link href="/schedule" className="text-sm plain-link">
+            Schedule
           </Link>
         </header>
         <main className="max-w-4xl mx-auto px-4 py-4 flex flex-col gap-4">{children}</main>

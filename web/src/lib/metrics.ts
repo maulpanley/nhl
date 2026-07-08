@@ -88,6 +88,44 @@ export async function skaterOutlook(
   };
 }
 
+export type TeamOutlook = {
+  offIdxA: number;
+  defIdxA: number;
+  offIdxB: number;
+  defIdxB: number;
+  expectedA: number;
+  expectedB: number;
+  h2hWinRate: number; // A's shrunk head-to-head win rate
+  league: number;
+};
+
+/** Team-vs-team outlook: recent scoring rates vs. league for both sides,
+    expected score next meeting (dampened), and shrunk head-to-head record. */
+export async function teamOutlook(
+  abbrevA: string,
+  abbrevB: string,
+  h2h: { aWins: number; games: number },
+): Promise<TeamOutlook | null> {
+  const [a, b, league] = await Promise.all([
+    teamRecentGoalRates(abbrevA, 20),
+    teamRecentGoalRates(abbrevB, 20),
+    leagueGoalsPerTeamGame(),
+  ]);
+  if (!Number(a.games) || !Number(b.games) || !league) return null;
+
+  const offIdxA = Number(a.gf_per_game) / league;
+  const defIdxA = Number(a.ga_per_game) / league;
+  const offIdxB = Number(b.gf_per_game) / league;
+  const defIdxB = Number(b.ga_per_game) / league;
+  // Expected goals: league base scaled by my offense and their leakiness, dampened.
+  const expectedA = league * Math.sqrt(offIdxA) * Math.sqrt(defIdxB);
+  const expectedB = league * Math.sqrt(offIdxB) * Math.sqrt(defIdxA);
+  // Head-to-head win rate shrunk toward a coin flip (k = 10 games of prior).
+  const h2hWinRate = shrunkRate(h2h.aWins, h2h.games, 0.5, 10);
+
+  return { offIdxA, defIdxA, offIdxB, defIdxB, expectedA, expectedB, h2hWinRate, league };
+}
+
 export async function goalieOutlook(
   playerId: number,
   opponentAbbrev: string,

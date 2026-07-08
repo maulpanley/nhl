@@ -225,6 +225,50 @@ export async function teamTopScorers(abbrev: string, limit = 15) {
   `;
 }
 
+/** All meetings between two teams (rolled up by abbrev), from A's perspective,
+    oldest first. gameType: 2=regular, 3=playoffs, null=both. */
+export async function teamVsTeamGames(abbrevA: string, abbrevB: string, gameType: number | null = null) {
+  return (await sql`
+    WITH a AS (SELECT team_id FROM teams WHERE abbrev = ${abbrevA}),
+         b AS (SELECT team_id FROM teams WHERE abbrev = ${abbrevB})
+    SELECT g.game_date::text, g.game_type,
+           CASE WHEN g.home_team_id IN (SELECT team_id FROM a) THEN true ELSE false END AS is_home,
+           CASE WHEN g.home_team_id IN (SELECT team_id FROM a) THEN g.home_score ELSE g.away_score END AS gf,
+           CASE WHEN g.home_team_id IN (SELECT team_id FROM a) THEN g.away_score ELSE g.home_score END AS ga
+    FROM games g
+    WHERE g.ingested_at IS NOT NULL
+      AND ((g.home_team_id IN (SELECT team_id FROM a) AND g.away_team_id IN (SELECT team_id FROM b))
+        OR (g.home_team_id IN (SELECT team_id FROM b) AND g.away_team_id IN (SELECT team_id FROM a)))
+      AND (${gameType}::int IS NULL OR g.game_type = ${gameType})
+    ORDER BY g.game_date ASC
+  `) as Record<string, never>[];
+}
+
+/** A team's all-time record against every opponent (rolled up by abbrev). */
+export async function teamOpponentIndex(abbrev: string) {
+  return await sql`
+    WITH ids AS (SELECT team_id FROM teams WHERE abbrev = ${abbrev}),
+    my_games AS (
+      SELECT
+        CASE WHEN g.home_team_id IN (SELECT team_id FROM ids) THEN g.away_team_id ELSE g.home_team_id END AS opp_id,
+        CASE WHEN g.home_team_id IN (SELECT team_id FROM ids) THEN g.home_score ELSE g.away_score END AS gf,
+        CASE WHEN g.home_team_id IN (SELECT team_id FROM ids) THEN g.away_score ELSE g.home_score END AS ga
+      FROM games g
+      WHERE g.ingested_at IS NOT NULL
+        AND (g.home_team_id IN (SELECT team_id FROM ids) OR g.away_team_id IN (SELECT team_id FROM ids))
+    )
+    SELECT t.abbrev AS opp,
+           (ARRAY_AGG(t.full_name ORDER BY t.team_id DESC))[1] AS opp_name,
+           COUNT(*) AS games,
+           SUM(CASE WHEN m.gf > m.ga THEN 1 ELSE 0 END) AS wins,
+           SUM(CASE WHEN m.gf < m.ga THEN 1 ELSE 0 END) AS losses,
+           SUM(m.gf) AS gf, SUM(m.ga) AS ga
+    FROM my_games m JOIN teams t ON t.team_id = m.opp_id
+    GROUP BY t.abbrev
+    ORDER BY games DESC, wins DESC
+  `;
+}
+
 /* ---- Matchup-outlook inputs (see lib/metrics.ts for the formulas) ---- */
 
 /** Skater production totals: career, last two seasons, last 10 games, vs one opponent. */

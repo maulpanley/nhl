@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TeamLogo } from "@/components/team-logo";
-import { getTeam, teamRecentGames, teamTopScorers } from "@/lib/db";
+import { getTeam, teamOpponentIndex, teamRecentGames, teamTopScorers } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +11,10 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
   if (!team) notFound();
   
 
-  const [recent, scorers] = await Promise.all([
+  const [recent, scorers, opponents] = await Promise.all([
     teamRecentGames(String(team.abbrev)),
     teamTopScorers(String(team.abbrev)),
+    teamOpponentIndex(String(team.abbrev)),
   ]);
 
   return (
@@ -55,6 +56,40 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
       </section>
 
       <section className="card overflow-x-auto">
+        <h2 className="font-medium mb-2">Head-to-head vs. every team</h2>
+        <p className="text-xs mb-2" style={{ color: "var(--ink-muted)" }}>
+          All games in database (2015-16 on). Click a team for the full matchup page.
+        </p>
+        <table className="stat-table">
+          <thead>
+            <tr>
+              <th>Opponent</th><th>GP</th><th>W</th><th>L</th><th>GF</th><th>GA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {opponents.map((o) => (
+              <tr key={String(o.opp)}>
+                <td>
+                  <Link
+                    href={`/team/${team.abbrev}/vs/${o.opp}`}
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <TeamLogo abbrev={String(o.opp)} size={18} />
+                    {String(o.opp_name)}
+                  </Link>
+                </td>
+                <td>{String(o.games)}</td>
+                <td>{String(o.wins)}</td>
+                <td>{String(o.losses)}</td>
+                <td>{String(o.gf)}</td>
+                <td>{String(o.ga)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="card overflow-x-auto">
         <h2 className="font-medium mb-2">Recent games</h2>
         <table className="stat-table">
           <thead>
@@ -77,10 +112,13 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
                     )}
                   </td>
                   <td>
-                    <span className="inline-flex items-center gap-1.5">
+                    <Link
+                      href={`/team/${team.abbrev}/vs/${g.opp}`}
+                      className="inline-flex items-center gap-1.5"
+                    >
                       {g.ha === "H" ? "vs" : "@"} <TeamLogo abbrev={String(g.opp)} size={18} />
                       {String(g.opp)}
-                    </span>
+                    </Link>
                   </td>
                   <td>
                     {gf}–{ga}

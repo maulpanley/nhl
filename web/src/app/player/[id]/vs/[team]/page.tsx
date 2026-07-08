@@ -8,6 +8,7 @@ import {
   goalieVsTeamGames,
   skaterVsTeamGames,
 } from "@/lib/db";
+import { StatTile, dir, pctDelta } from "@/components/stat-tile";
 import { goalieOutlook, skaterOutlook } from "@/lib/metrics";
 
 export const dynamic = "force-dynamic";
@@ -17,43 +18,6 @@ const TYPE_FILTERS = [
   { key: "regular", label: "Regular season", gameType: 2 },
   { key: "playoffs", label: "Playoffs", gameType: 3 },
 ] as const;
-
-function StatTile({
-  label,
-  value,
-  delta,
-  deltaDir,
-  highlight,
-}: {
-  label: string;
-  value: string | number;
-  delta?: string;
-  deltaDir?: "up" | "down" | "flat";
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`stat-tile${highlight ? " highlight" : ""}`}>
-      <div className="label">{label}</div>
-      <div className="value">{value}</div>
-      {delta ? (
-        <div className={`delta${deltaDir === "up" ? " up" : deltaDir === "down" ? " down" : ""}`}>
-          {delta}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function pctDelta(idx: number, vs: string) {
-  const pct = Math.round((idx - 1) * 100);
-  const sign = pct > 0 ? "+" : "";
-  return `${sign}${pct}% ${vs}`;
-}
-
-function dir(idx: number, upIsGood = true): "up" | "down" | "flat" {
-  if (Math.abs(idx - 1) < 0.02) return "flat";
-  return (idx > 1) === upIsGood ? "up" : "down";
-}
 
 function sum(rows: Record<string, unknown>[], key: string) {
   return rows.reduce((a, r) => a + Number(r[key] ?? 0), 0);
