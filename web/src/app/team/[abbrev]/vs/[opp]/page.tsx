@@ -141,11 +141,11 @@ export default async function TeamVsTeamPage({
           <div className="flex flex-col gap-5">
             <div>
               <h2 className="font-medium mb-2">{a} goals by meeting</h2>
-              <FormChart data={games} dataKey="gf" name={`${a} goals`} window={5} />
+              <FormChart data={games} dataKey="gf" name={`${a} goals`} window={5} fixedOpp={b} />
             </div>
             <div>
               <h2 className="font-medium mb-2">{b} goals by meeting</h2>
-              <FormChart data={games} dataKey="ga" name={`${b} goals`} window={5} />
+              <FormChart data={games} dataKey="ga" name={`${b} goals`} window={5} fixedOpp={b} />
             </div>
           </div>
         </section>

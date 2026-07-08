@@ -27,21 +27,41 @@ function shortDate(iso: string): string {
   return `${Number(m)}/${Number(d)}/${y.slice(2)}`;
 }
 
+/** Axis/tooltip labels like "3/8/26 @DAL" or "3/8/26 vs FLA". Opponent comes
+    from each row's `opp`, or `fixedOpp` on vs-pages where it's constant. */
+function makeGameLabeler(data: Row[], fixedOpp?: string) {
+  const byDate = new Map<string, string>();
+  for (const r of data) {
+    const date = String(r.game_date);
+    const opp = (r.opp as string | undefined) ?? fixedOpp;
+    if (opp && r.is_home != null) {
+      byDate.set(date, `${shortDate(date)} ${r.is_home ? "vs " : "@"}${opp}`);
+    } else {
+      byDate.set(date, shortDate(date));
+    }
+  }
+  return (d: string) => byDate.get(d) ?? shortDate(d);
+}
+
 function VizTooltip({
   active,
   payload,
   label,
   fmt,
+  fmtLabel,
 }: {
   active?: boolean;
   payload?: { value: number; name: string; color?: string; stroke?: string; fill?: string }[];
   label?: string;
   fmt?: (v: number) => string;
+  fmtLabel?: (d: string) => string;
 }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="viz-tooltip">
-      <div className="viz-tooltip-label">{typeof label === "string" ? shortDate(label) : label}</div>
+      <div className="viz-tooltip-label">
+        {typeof label === "string" ? (fmtLabel ? fmtLabel(label) : shortDate(label)) : label}
+      </div>
       {payload.map((p) => (
         <div className="viz-tooltip-row" key={p.name}>
           <span className="viz-key" style={{ background: p.stroke ?? p.fill ?? p.color }} />
@@ -60,13 +80,16 @@ export function FormChart({
   name,
   window = 5,
   height = 220,
+  fixedOpp,
 }: {
   data: Row[];
   dataKey: string;
   name: string;
   window?: number;
   height?: number;
+  fixedOpp?: string;
 }) {
+  const labelFor = makeGameLabeler(data, fixedOpp);
   // Long ranges keep per-game bars (they read like volume bars under the
   // trend), but drop the rounded caps and widen the rolling window.
   const dense = data.length > 120;
@@ -95,13 +118,16 @@ export function FormChart({
           <XAxis
             dataKey="game_date"
             tick={AXIS_TICK}
-            tickFormatter={shortDate}
+            tickFormatter={labelFor}
             tickLine={false}
             axisLine={{ stroke: "var(--axis)" }}
-            minTickGap={40}
+            minTickGap={64}
           />
           <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
-          <Tooltip content={<VizTooltip />} cursor={{ stroke: "var(--axis)", strokeWidth: 1 }} />
+          <Tooltip
+            content={<VizTooltip fmtLabel={labelFor} />}
+            cursor={{ stroke: "var(--axis)", strokeWidth: 1 }}
+          />
           <Bar
             isAnimationActive={false}
             dataKey={dataKey}
@@ -128,42 +154,19 @@ export function FormChart({
   );
 }
 
-/** Single metric per meeting — bars over time. One series → no legend. */
-export function MeetingBarChart({
+/** Save % per game — line with surface-ringed dots. One series → no legend. */
+export function SavePctChart({
   data,
-  dataKey,
-  name,
-  height = 200,
+  height = 220,
+  fixedOpp,
 }: {
   data: Row[];
-  dataKey: string;
-  name: string;
   height?: number;
+  fixedOpp?: string;
 }) {
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -22 }}>
-        <CartesianGrid stroke="var(--grid)" strokeWidth={1} vertical={false} />
-        <XAxis
-          dataKey="game_date"
-          tick={AXIS_TICK}
-          tickFormatter={shortDate}
-          tickLine={false}
-          axisLine={{ stroke: "var(--axis)" }}
-          minTickGap={40}
-        />
-        <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
-        <Tooltip content={<VizTooltip />} cursor={{ stroke: "var(--axis)", strokeWidth: 1 }} />
-        <Bar isAnimationActive={false} dataKey={dataKey} name={name} fill="var(--series-1)" maxBarSize={24} radius={[4, 4, 0, 0]} />
-      </ComposedChart>
-    </ResponsiveContainer>
-  );
-}
-
-/** Save % per game — line with surface-ringed dots. One series → no legend. */
-export function SavePctChart({ data, height = 220 }: { data: Row[]; height?: number }) {
   const fmt = (v: number) => v.toFixed(3);
   const dense = data.length > 60;
+  const labelFor = makeGameLabeler(data, fixedOpp);
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -10 }}>
@@ -171,10 +174,10 @@ export function SavePctChart({ data, height = 220 }: { data: Row[]; height?: num
         <XAxis
           dataKey="game_date"
           tick={AXIS_TICK}
-          tickFormatter={shortDate}
+          tickFormatter={labelFor}
           tickLine={false}
           axisLine={{ stroke: "var(--axis)" }}
-          minTickGap={40}
+          minTickGap={64}
         />
         <YAxis
           tick={AXIS_TICK}
@@ -183,7 +186,10 @@ export function SavePctChart({ data, height = 220 }: { data: Row[]; height?: num
           domain={[0.7, 1]}
           tickFormatter={fmt}
         />
-        <Tooltip content={<VizTooltip fmt={fmt} />} cursor={{ stroke: "var(--axis)", strokeWidth: 1 }} />
+        <Tooltip
+          content={<VizTooltip fmt={fmt} fmtLabel={labelFor} />}
+          cursor={{ stroke: "var(--axis)", strokeWidth: 1 }}
+        />
         <Line
           isAnimationActive={false}
           dataKey="save_pct"

@@ -189,23 +189,23 @@ export default async function PlayerVsTeamPage({
           {isGoalie ? (
             <>
               <h2 className="font-medium mb-2">Save % by meeting</h2>
-              <SavePctChart data={games} />
+              <SavePctChart data={games} fixedOpp={String(opponent.abbrev)} />
               <h2 className="font-medium mb-2 mt-5">Goals against by meeting</h2>
-              <FormChart data={games} dataKey="goals_against" name="Goals against" window={5} />
+              <FormChart data={games} dataKey="goals_against" name="Goals against" window={5} fixedOpp={String(opponent.abbrev)} />
             </>
           ) : (
             <div className="flex flex-col gap-5">
               <div>
                 <h2 className="font-medium mb-2">Points by meeting</h2>
-                <FormChart data={games} dataKey="points" name="Points" window={5} />
+                <FormChart data={games} dataKey="points" name="Points" window={5} fixedOpp={String(opponent.abbrev)} />
               </div>
               <div>
                 <h2 className="font-medium mb-2">Goals by meeting</h2>
-                <FormChart data={games} dataKey="goals" name="Goals" window={5} />
+                <FormChart data={games} dataKey="goals" name="Goals" window={5} fixedOpp={String(opponent.abbrev)} />
               </div>
               <div>
                 <h2 className="font-medium mb-2">Shots on goal by meeting</h2>
-                <FormChart data={games} dataKey="sog" name="Shots on goal" window={5} />
+                <FormChart data={games} dataKey="sog" name="Shots on goal" window={5} fixedOpp={String(opponent.abbrev)} />
               </div>
             </div>
           )}
