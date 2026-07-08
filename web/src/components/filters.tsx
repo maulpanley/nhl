@@ -8,7 +8,19 @@ export const TYPE_FILTERS = [
 
 export type TypeFilter = (typeof TYPE_FILTERS)[number];
 
-export type FilterParams = { type?: string; last?: string; from?: string; to?: string };
+export type FilterParams = {
+  type?: string;
+  last?: string;
+  from?: string;
+  to?: string;
+  venue?: string;
+};
+
+export const VENUE_FILTERS = [
+  { key: "all", label: "Home & away" },
+  { key: "home", label: "Home" },
+  { key: "away", label: "Away" },
+] as const;
 
 export type FilterState = {
   filter: TypeFilter;
@@ -20,6 +32,8 @@ export type FilterState = {
   noun: string;
   isDefault: boolean; // no explicit range params in the URL
   rawLast?: string; // the URL's own `last` value, preserved across type switches
+  venue: "all" | "home" | "away";
+  venueLabel: string;
 };
 
 function isIsoDate(s: string | undefined): s is string {
@@ -48,7 +62,21 @@ export function parseFilters(
     : fromDate || toDate
       ? `${fromDate ?? "…"} to ${toDate ?? "…"}`
       : "all time";
-  return { filter, lastN, fromDate, toDate, rangeLabel, lastOptions, noun, isDefault, rawLast: sp.last };
+  const venue = sp.venue === "home" || sp.venue === "away" ? sp.venue : "all";
+  const venueLabel = venue === "all" ? "home & away" : venue === "home" ? "home only" : "away only";
+  return {
+    filter,
+    lastN,
+    fromDate,
+    toDate,
+    rangeLabel,
+    lastOptions,
+    noun,
+    isDefault,
+    rawLast: sp.last,
+    venue,
+    venueLabel,
+  };
 }
 
 export function buildQuery(s: FilterState, overrides: Record<string, string | undefined>) {
@@ -58,6 +86,7 @@ export function buildQuery(s: FilterState, overrides: Record<string, string | un
     last: s.rawLast,
     from: s.fromDate,
     to: s.toDate,
+    venue: s.venue === "all" ? undefined : s.venue,
     ...overrides,
   };
   for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
@@ -65,10 +94,15 @@ export function buildQuery(s: FilterState, overrides: Record<string, string | un
   return str ? `?${str}` : "?";
 }
 
-/** Apply the date-range / last-N slice to rows already filtered by game type
-    (rows must be oldest-first with a game_date field). */
-export function applyRange<T extends { game_date?: unknown }>(rows: T[], s: FilterState): T[] {
+/** Apply venue + date-range + last-N slices to rows already filtered by game
+    type (rows must be oldest-first with game_date and is_home fields).
+    Venue applies before last-N, so "last 10, home" = the last 10 home games. */
+export function applyRange<T extends { game_date?: unknown; is_home?: unknown }>(
+  rows: T[],
+  s: FilterState,
+): T[] {
   let out = rows;
+  if (s.venue !== "all") out = out.filter((r) => Boolean(r.is_home) === (s.venue === "home"));
   if (s.fromDate) out = out.filter((r) => String(r.game_date) >= s.fromDate!);
   if (s.toDate) out = out.filter((r) => String(r.game_date) <= s.toDate!);
   if (s.lastN) out = out.slice(-s.lastN);
@@ -89,6 +123,16 @@ export function FilterRow({ state }: { state: FilterState }) {
         </Link>
       ))}
       <span className="filter-divider" />
+      {VENUE_FILTERS.map((v) => (
+        <Link
+          key={v.key}
+          href={buildQuery(state, { venue: v.key === "all" ? undefined : v.key })}
+          className={`filter-pill${state.venue === v.key ? " active" : ""}`}
+        >
+          {v.label}
+        </Link>
+      ))}
+      <span className="filter-divider" />
       <Link
         href={buildQuery(state, { last: "0", from: undefined, to: undefined })}
         className={`filter-pill${allTimeActive ? " active" : ""}`}
@@ -106,6 +150,7 @@ export function FilterRow({ state }: { state: FilterState }) {
       ))}
       <form method="GET" className="filter-range-form">
         {state.filter.key !== "all" && <input type="hidden" name="type" value={state.filter.key} />}
+        {state.venue !== "all" && <input type="hidden" name="venue" value={state.venue} />}
         <input type="date" name="from" defaultValue={state.fromDate ?? ""} aria-label="From date" />
         <span style={{ color: "var(--ink-muted)" }}>–</span>
         <input type="date" name="to" defaultValue={state.toDate ?? ""} aria-label="To date" />

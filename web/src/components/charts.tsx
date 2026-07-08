@@ -67,8 +67,8 @@ export function FormChart({
   window?: number;
   height?: number;
 }) {
-  // Past ~120 games individual bars are sub-pixel noise; show only the
-  // rolling trend line (with a wider window).
+  // Long ranges keep per-game bars (they read like volume bars under the
+  // trend), but drop the rounded caps and widen the rolling window.
   const dense = data.length > 120;
   const effWindow = dense ? Math.max(window, 10) : window;
   const rows = data.map((r, i) => {
@@ -80,12 +80,10 @@ export function FormChart({
   return (
     <div>
       <div className="viz-legend">
-        {!dense && (
-          <span className="entry">
-            <span className="viz-key swatch" style={{ background: "var(--series-1)" }} />
-            {name}
-          </span>
-        )}
+        <span className="entry">
+          <span className="viz-key swatch" style={{ background: "var(--series-1)" }} />
+          {name}
+        </span>
         <span className="entry">
           <span className="viz-key" style={{ background: "var(--series-3)" }} />
           {rollingName}
@@ -104,9 +102,15 @@ export function FormChart({
           />
           <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip content={<VizTooltip />} cursor={{ stroke: "var(--axis)", strokeWidth: 1 }} />
-          {!dense && (
-            <Bar isAnimationActive={false} dataKey={dataKey} name={name} fill="var(--series-1)" maxBarSize={24} radius={[4, 4, 0, 0]} />
-          )}
+          <Bar
+            isAnimationActive={false}
+            dataKey={dataKey}
+            name={name}
+            fill="var(--series-1)"
+            fillOpacity={dense ? 0.55 : 1}
+            maxBarSize={24}
+            radius={dense ? 0 : [4, 4, 0, 0]}
+          />
           <Line
             isAnimationActive={false}
             dataKey="rolling"

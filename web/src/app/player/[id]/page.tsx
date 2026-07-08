@@ -158,7 +158,7 @@ export default async function PlayerPage({
         <h2 className="font-medium mb-1">Performance</h2>
         <p className="text-sm mb-3" style={{ color: "var(--ink-2)" }}>
           Showing {games.length.toLocaleString()} of {allGames.length.toLocaleString()} games ·{" "}
-          {state.filter.label.toLowerCase()} · {state.rangeLabel}
+          {state.filter.label.toLowerCase()} · {state.venueLabel} · {state.rangeLabel}
         </p>
         <FilterRow state={state} />
         {games.length === 0 ? (

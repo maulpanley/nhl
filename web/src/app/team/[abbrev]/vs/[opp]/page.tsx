@@ -71,7 +71,7 @@ export default async function TeamVsTeamPage({
         </h1>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
           Showing {games.length} of {totalMeetings} meetings · {state.filter.label.toLowerCase()} ·{" "}
-          {state.rangeLabel}
+          {state.venueLabel} · {state.rangeLabel}
           {state.filter.gameType === null && playoffCount > 0
             ? ` (${games.length - playoffCount} regular season, ${playoffCount} playoffs)`
             : ""}
