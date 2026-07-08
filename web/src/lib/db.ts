@@ -338,6 +338,10 @@ export async function leagueGoalsPerTeamGame() {
   return Number(rows[0].goals);
 }
 
+export async function allPlayerIds() {
+  return (await sql`SELECT player_id FROM players ORDER BY player_id`) as { player_id: number }[];
+}
+
 export async function dbCounts() {
   const rows = await sql`
     SELECT (SELECT COUNT(*) FROM games WHERE ingested_at IS NOT NULL) AS games,

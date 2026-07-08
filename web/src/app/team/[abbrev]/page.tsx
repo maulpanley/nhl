@@ -3,7 +3,18 @@ import { notFound } from "next/navigation";
 import { TeamLogo } from "@/components/team-logo";
 import { getTeam, teamOpponentIndex, teamRecentGames, teamTopScorers } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
+// Data changes nightly; cache each team page for 30 minutes.
+export const revalidate = 1800;
+
+export async function generateMetadata({ params }: { params: Promise<{ abbrev: string }> }) {
+  const { abbrev } = await params;
+  const team = await getTeam(abbrev);
+  if (!team) return { title: "NHL Trends" };
+  return {
+    title: `${team.full_name} — NHL Trends`,
+    description: `${team.full_name}: top scorers, recent results, and head-to-head history vs. every NHL team since 2015.`,
+  };
+}
 
 export default async function TeamPage({ params }: { params: Promise<{ abbrev: string }> }) {
   const { abbrev } = await params;

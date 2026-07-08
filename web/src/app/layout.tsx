@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://nhl-trends.vercel.app"),
   title: "NHL Trends",
   description: "Player vs. team splits, goalie matchups, and recent-form trends",
 };

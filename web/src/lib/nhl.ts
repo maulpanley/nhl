@@ -9,6 +9,7 @@ export type CareerTotals = {
 };
 
 export type PlayerLanding = {
+  headshot?: string;
   birthDate?: string;
   birthCity?: string;
   birthCountry?: string;
@@ -27,6 +28,29 @@ export async function fetchPlayerLanding(playerId: number): Promise<PlayerLandin
     return (await res.json()) as PlayerLanding;
   } catch {
     return null;
+  }
+}
+
+export type ScheduleGame = {
+  id: number;
+  startTimeUTC: string;
+  gameState: string;
+  gameType: number;
+  awayTeam: { abbrev: string; score?: number };
+  homeTeam: { abbrev: string; score?: number };
+};
+export type ScheduleDay = { date: string; games: ScheduleGame[] };
+
+export async function fetchScheduleWeek(startDate: string): Promise<ScheduleDay[]> {
+  try {
+    const res = await fetch(`https://api-web.nhle.com/v1/schedule/${startDate}`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.gameWeek ?? []) as ScheduleDay[];
+  } catch {
+    return [];
   }
 }
 

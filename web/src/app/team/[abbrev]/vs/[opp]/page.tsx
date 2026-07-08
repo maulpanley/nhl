@@ -8,6 +8,20 @@ import { teamOutlook } from "@/lib/metrics";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ abbrev: string; opp: string }>;
+}) {
+  const { abbrev, opp } = await params;
+  const [teamA, teamB] = await Promise.all([getTeam(abbrev), getTeam(opp)]);
+  if (!teamA || !teamB) return { title: "NHL Trends" };
+  return {
+    title: `${teamA.full_name} vs. ${teamB.full_name} — NHL Trends`,
+    description: `Head-to-head history, expected score, and matchup outlook: ${teamA.full_name} vs. ${teamB.full_name}.`,
+  };
+}
+
 const TYPE_FILTERS = [
   { key: "all", label: "All games", gameType: null },
   { key: "regular", label: "Regular season", gameType: 2 },

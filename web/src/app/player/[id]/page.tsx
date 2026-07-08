@@ -12,7 +12,22 @@ import {
 } from "@/lib/db";
 import { birthdayInfo, fetchPlayerLanding, fetchPlayerNews, nearMilestones } from "@/lib/nhl";
 
-export const dynamic = "force-dynamic";
+// Data changes nightly; cache each player page for 30 minutes.
+export const revalidate = 1800;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const player = await getPlayer(Number(id));
+  if (!player) return { title: "NHL Trends" };
+  const landing = await fetchPlayerLanding(Number(id));
+  const c = landing?.careerTotals?.regularSeason;
+  const line = c ? `${c.gamesPlayed} GP · ${c.goals} G · ${c.assists} A · ${c.points} P` : "";
+  return {
+    title: `${player.full_name} — NHL Trends`,
+    description: `${player.full_name} (${player.team_abbrev ?? "NHL"}): recent form, career vs. every team, matchup outlooks. ${line}`,
+    openGraph: landing?.headshot ? { images: [landing.headshot] } : undefined,
+  };
+}
 
 function fmtSeason(s: number) {
   const str = String(s);
@@ -39,7 +54,19 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
 
   return (
     <>
-      <section className="card">
+      <section className="card flex items-center gap-4">
+        {landing?.headshot ? (
+          // eslint-disable-next-line @next/next/no-img-element -- NHL CDN headshot
+          <img
+            src={landing.headshot}
+            alt=""
+            width={72}
+            height={72}
+            className="rounded-full"
+            style={{ background: "var(--grid)" }}
+          />
+        ) : null}
+        <div>
         <h1 className="text-xl font-semibold flex items-center gap-2">
           {player.team_abbrev ? <TeamLogo abbrev={String(player.team_abbrev)} size={34} /> : null}
           {player.full_name}
@@ -52,6 +79,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             {birthday.text}
           </p>
         )}
+        </div>
       </section>
 
       {career && (

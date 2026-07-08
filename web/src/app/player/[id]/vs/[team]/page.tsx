@@ -13,6 +13,20 @@ import { goalieOutlook, skaterOutlook } from "@/lib/metrics";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string; team: string }>;
+}) {
+  const { id, team } = await params;
+  const [player, opponent] = await Promise.all([getPlayer(Number(id)), getTeam(team)]);
+  if (!player || !opponent) return { title: "NHL Trends" };
+  return {
+    title: `${player.full_name} vs. ${opponent.full_name} — NHL Trends`,
+    description: `Every ${player.full_name} game against the ${opponent.full_name} since 2015: goals, assists, shots, trends, and a matchup outlook.`,
+  };
+}
+
 const TYPE_FILTERS = [
   { key: "all", label: "All games", gameType: null },
   { key: "regular", label: "Regular season", gameType: 2 },

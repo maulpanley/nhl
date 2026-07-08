@@ -1,30 +1,8 @@
 import Link from "next/link";
 import { TeamLogo } from "@/components/team-logo";
+import { fetchScheduleWeek } from "@/lib/nhl";
 
 export const dynamic = "force-dynamic";
-
-type ScheduleGame = {
-  id: number;
-  startTimeUTC: string;
-  gameState: string;
-  gameType: number;
-  awayTeam: { abbrev: string; score?: number };
-  homeTeam: { abbrev: string; score?: number };
-};
-type ScheduleDay = { date: string; games: ScheduleGame[] };
-
-async function fetchWeek(startDate: string): Promise<ScheduleDay[]> {
-  try {
-    const res = await fetch(`https://api-web.nhle.com/v1/schedule/${startDate}`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.gameWeek ?? []) as ScheduleDay[];
-  } catch {
-    return [];
-  }
-}
 
 function isIsoDate(s: string | undefined): s is string {
   return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -60,7 +38,7 @@ export default async function SchedulePage({
 }) {
   const { week } = await searchParams;
   const start = isIsoDate(week) ? week : new Date().toISOString().slice(0, 10);
-  const days = await fetchWeek(start);
+  const days = await fetchScheduleWeek(start);
   const totalGames = days.reduce((s, d) => s + d.games.length, 0);
 
   return (
