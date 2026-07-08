@@ -9,8 +9,10 @@ import {
   skaterVsTeamGames,
 } from "@/lib/db";
 import { FilterRow, applyRange, parseFilters, type FilterParams } from "@/components/filters";
+import { LockedOutlook } from "@/components/locked-outlook";
 import { StatTile, dir, pctDelta } from "@/components/stat-tile";
 import { goalieOutlook, skaterOutlook } from "@/lib/metrics";
+import { getTier } from "@/lib/tier";
 
 export const dynamic = "force-dynamic";
 
@@ -52,13 +54,17 @@ export default async function PlayerVsTeamPage({
   if (!player || !opponent) notFound();
   const isGoalie = player.position === "G";
 
+  const tier = await getTier();
   const [allGames, outlook] = await Promise.all([
     isGoalie
       ? goalieVsTeamGames(player.player_id, String(opponent.abbrev), state.filter.gameType)
       : skaterVsTeamGames(player.player_id, String(opponent.abbrev), state.filter.gameType),
-    isGoalie
-      ? goalieOutlook(player.player_id, String(opponent.abbrev))
-      : skaterOutlook(player.player_id, String(opponent.abbrev)),
+    // Free users never receive the numbers — only paid renders compute them.
+    tier === "paid"
+      ? isGoalie
+        ? goalieOutlook(player.player_id, String(opponent.abbrev))
+        : skaterOutlook(player.player_id, String(opponent.abbrev))
+      : Promise.resolve(null),
   ]);
   const games = applyRange(allGames, state);
   const seasons = [...new Set(allGames.map((g) => Number(g.season)))].sort((a, b) => b - a);
@@ -113,6 +119,17 @@ export default async function PlayerVsTeamPage({
           </>
         )}
       </div>
+
+      {tier !== "paid" && (
+        <LockedOutlook
+          labels={
+            isGoalie
+              ? ["Baseline SV%", "Form (last 10)", `SV% vs ${opponent.abbrev}`, `${opponent.abbrev} offense`]
+              : ["Baseline P/GP", "Form (last 10)", `Edge vs ${opponent.abbrev}`, `${opponent.abbrev} defense`, "Expected points"]
+          }
+          blurb={`How ${player.full_name} projects against the ${opponent.full_name} next meeting — form, head-to-head edge, and expected production.`}
+        />
+      )}
 
       {outlook && (
         <section className="card">

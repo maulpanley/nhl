@@ -19,6 +19,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Link href="/schedule" className="text-sm plain-link">
             Schedule
           </Link>
+          <Link href="/best-bets" className="text-sm plain-link">
+            Best Bets
+          </Link>
+          <Link href="/pricing" className="text-sm plain-link">
+            Pricing
+          </Link>
         </header>
         <main className="max-w-4xl mx-auto px-4 py-4 flex flex-col gap-4">{children}</main>
         <footer className="max-w-4xl mx-auto px-4 py-8 text-xs" style={{ color: "var(--ink-muted)" }}>

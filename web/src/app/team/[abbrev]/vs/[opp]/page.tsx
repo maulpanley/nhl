@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormChart } from "@/components/charts";
 import { FilterRow, applyRange, parseFilters, type FilterParams } from "@/components/filters";
+import { LockedOutlook } from "@/components/locked-outlook";
 import { StatTile, dir, pctDelta } from "@/components/stat-tile";
 import { TeamLogo } from "@/components/team-logo";
 import { getTeam, teamVsTeamGames } from "@/lib/db";
 import { teamOutlook } from "@/lib/metrics";
+import { getTier } from "@/lib/tier";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +51,14 @@ export default async function TeamVsTeamPage({
   const gaTotal = games.reduce((s, g) => s + Number(g.ga), 0);
   const playoffCount = games.filter((g) => Number(g.game_type) === 3).length;
 
-  const outlook = await teamOutlook(a, b, {
-    aWins: allGames.filter((g) => Number(g.gf) > Number(g.ga)).length,
-    games: allGames.length,
-  });
+  const tier = await getTier();
+  const outlook =
+    tier === "paid"
+      ? await teamOutlook(a, b, {
+          aWins: allGames.filter((g) => Number(g.gf) > Number(g.ga)).length,
+          games: allGames.length,
+        })
+      : null;
 
   return (
     <>
@@ -88,6 +94,13 @@ export default async function TeamVsTeamPage({
         <StatTile label={`${a} goals`} value={gfTotal.toLocaleString()} />
         <StatTile label={`${b} goals`} value={gaTotal.toLocaleString()} />
       </div>
+
+      {tier !== "paid" && (
+        <LockedOutlook
+          labels={[`${a} offense`, `${a} defense`, `${b} offense`, `${b} defense`, "H2H edge", "Expected score"]}
+          blurb={`How ${a} and ${b} project next meeting — recent offense/defense vs. league, head-to-head edge, and an expected score.`}
+        />
+      )}
 
       {outlook && (
         <section className="card">
