@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HeaderAuth } from "@/components/header-auth";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,24 +14,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <header className="max-w-4xl mx-auto px-4 pt-6 pb-2 flex items-baseline gap-4">
-          <Link href="/" className="font-semibold text-lg tracking-tight">
-            NHL Trends
-          </Link>
-          <Link href="/schedule" className="text-sm plain-link">
-            Schedule
-          </Link>
-          <Link href="/best-bets" className="text-sm plain-link">
-            Best Bets
-          </Link>
-          <Link href="/pricing" className="text-sm plain-link">
-            Pricing
-          </Link>
-        </header>
-        <main className="max-w-4xl mx-auto px-4 py-4 flex flex-col gap-4">{children}</main>
-        <footer className="max-w-4xl mx-auto px-4 py-8 text-xs" style={{ color: "var(--ink-muted)" }}>
-          Data from the NHL API, refreshed nightly.
-        </footer>
+        <Providers>
+          <header className="max-w-4xl mx-auto px-4 pt-6 pb-2 flex items-baseline gap-4 flex-wrap">
+            <Link href="/" className="font-semibold text-lg tracking-tight">
+              NHL Trends
+            </Link>
+            <Link href="/schedule" className="text-sm plain-link">
+              Schedule
+            </Link>
+            <Link href="/best-bets" className="text-sm plain-link">
+              Best Bets
+            </Link>
+            <Link href="/pricing" className="text-sm plain-link">
+              Pricing
+            </Link>
+            <HeaderAuth />
+          </header>
+          <main className="max-w-4xl mx-auto px-4 py-4 flex flex-col gap-4">{children}</main>
+          <footer className="max-w-4xl mx-auto px-4 py-8 text-xs" style={{ color: "var(--ink-muted)" }}>
+            Data from the NHL API, refreshed nightly.
+          </footer>
+        </Providers>
       </body>
     </html>
   );

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { auth } from "@/auth";
 
 export type Tier = "free" | "paid";
 
@@ -12,10 +13,10 @@ export type Tier = "free" | "paid";
  * Once billing is live, this reads the signed-in user's subscription — added
  * in the Auth.js + Stripe phase. */
 export async function getTier(): Promise<Tier> {
-  const jar = await cookies();
   if (process.env.PAYWALL_ENABLED !== "true") {
+    const jar = await cookies();
     return jar.get("preview")?.value === "locked" ? "free" : "paid";
   }
-  // TODO(billing): look up the session user's subscription_status here.
-  return jar.get("tier")?.value === "paid" ? "paid" : "free";
+  const session = await auth();
+  return (session?.user as { tier?: string } | undefined)?.tier === "paid" ? "paid" : "free";
 }
