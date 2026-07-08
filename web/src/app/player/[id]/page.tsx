@@ -10,6 +10,7 @@ import {
   skaterRecentGames,
   skaterVsTeams,
 } from "@/lib/db";
+import { birthdayInfo, fetchPlayerLanding, fetchPlayerNews, nearMilestones } from "@/lib/nhl";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +25,17 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   if (!player) notFound();
   const isGoalie = player.position === "G";
 
-  const [recent, vsTeams, seasons] = await Promise.all([
+  const [recent, vsTeams, seasons, landing, news] = await Promise.all([
     isGoalie ? goalieRecentGames(player.player_id) : skaterRecentGames(player.player_id),
     isGoalie ? goalieVsTeams(player.player_id) : skaterVsTeams(player.player_id),
     seasonSummaries(player.player_id, isGoalie),
+    fetchPlayerLanding(player.player_id),
+    fetchPlayerNews(String(player.full_name)),
   ]);
+
+  const career = landing?.careerTotals?.regularSeason;
+  const milestones = career && !isGoalie ? nearMilestones(career) : [];
+  const birthday = birthdayInfo(landing?.birthDate);
 
   return (
     <>
@@ -40,7 +47,68 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
           {isGoalie ? "Goalie" : player.position} · {player.team_name ?? player.team_abbrev ?? "—"}
         </p>
+        {birthday && (
+          <p className="text-sm mt-1" style={{ color: "var(--ink)" }}>
+            {birthday.text}
+          </p>
+        )}
       </section>
+
+      {career && (
+        <section className="card">
+          <h2 className="font-medium mb-2">Career (regular season)</h2>
+          <div className="tile-row">
+            <div className="stat-tile">
+              <div className="label">Games</div>
+              <div className="value">{career.gamesPlayed.toLocaleString()}</div>
+            </div>
+            {!isGoalie && (
+              <>
+                <div className="stat-tile">
+                  <div className="label">Goals</div>
+                  <div className="value">{career.goals.toLocaleString()}</div>
+                </div>
+                <div className="stat-tile">
+                  <div className="label">Assists</div>
+                  <div className="value">{career.assists.toLocaleString()}</div>
+                </div>
+                <div className="stat-tile">
+                  <div className="label">Points</div>
+                  <div className="value">{career.points.toLocaleString()}</div>
+                </div>
+              </>
+            )}
+          </div>
+          {milestones.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {milestones.map((m) => (
+                <span key={m.stat} className="milestone-chip">
+                  🏒 {m.away} {m.stat === "games" ? (m.away === 1 ? "game" : "games") : m.stat}{" "}
+                  from career {m.stat === "games" ? "game" : m.stat.replace(/s$/, "")} #{m.next.toLocaleString()}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {news.length > 0 && (
+        <section className="card">
+          <h2 className="font-medium mb-2">In the news</h2>
+          <ul className="flex flex-col gap-1.5 text-sm">
+            {news.map((n) => (
+              <li key={n.link}>
+                <a href={n.link} target="_blank" rel="noopener noreferrer" className="plain-link">
+                  {n.title}
+                </a>
+                <span className="text-xs ml-2" style={{ color: "var(--ink-muted)" }}>
+                  {n.source}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="card">
         <h2 className="font-medium mb-2">

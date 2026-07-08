@@ -9,11 +9,11 @@ export default async function TeamPage({ params }: { params: Promise<{ abbrev: s
   const { abbrev } = await params;
   const team = await getTeam(abbrev);
   if (!team) notFound();
-  const teamId = Number(team.team_id);
+  
 
   const [recent, scorers] = await Promise.all([
-    teamRecentGames(teamId),
-    teamTopScorers(teamId),
+    teamRecentGames(String(team.abbrev)),
+    teamTopScorers(String(team.abbrev)),
   ]);
 
   return (

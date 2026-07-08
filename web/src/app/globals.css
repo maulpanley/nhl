@@ -12,6 +12,8 @@
   --series-1: #2a78d6;
   --series-2: #1baf7a;
   --series-3: #eda100;
+  --delta-good: #006300;
+  --delta-bad: #d03b3b;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,6 +29,8 @@
     --series-1: #3987e5;
     --series-2: #199e70;
     --series-3: #c98500;
+    --delta-good: #0ca30c;
+    --delta-bad: #d03b3b;
   }
 }
 
@@ -124,6 +128,29 @@ a.plain-link {
   font-size: 1.45rem;
   font-weight: 600;
   color: var(--ink);
+}
+.stat-tile .delta {
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+.stat-tile .delta.up {
+  color: var(--delta-good);
+}
+.stat-tile .delta.down {
+  color: var(--delta-bad);
+}
+.stat-tile.highlight {
+  border-color: var(--series-1);
+}
+
+.milestone-chip {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--series-1);
+  color: var(--ink);
+  background: var(--surface-1);
+  font-weight: 500;
 }
 
 .filter-row {
