@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 
 /** Account widget in the header. Client-side so the layout stays static/ISR;
@@ -23,9 +22,7 @@ export function HeaderAuth() {
     );
   }
 
-  return (
-    <Link href="/signin" className="ml-auto text-sm plain-link">
-      Sign in
-    </Link>
-  );
+  // Public sign-in is hidden until email-to-anyone is ready (needs a verified
+  // sending domain). The /signin route still works if visited directly.
+  return null;
 }
