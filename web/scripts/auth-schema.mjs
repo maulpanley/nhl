@@ -49,6 +49,15 @@ const statements = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY ("userId", kind, ref)
   )`,
+  // One row per milestone alert already emailed, so we never re-send the same one.
+  `CREATE TABLE IF NOT EXISTS milestone_alerts (
+    "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    player_id TEXT NOT NULL,
+    stat TEXT NOT NULL,
+    milestone INTEGER NOT NULL,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY ("userId", player_id, stat, milestone)
+  )`,
 ];
 
 for (const stmt of statements) {

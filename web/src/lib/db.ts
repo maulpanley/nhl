@@ -379,6 +379,34 @@ export async function favoriteTeams(userId: string) {
   `;
 }
 
+/** Every (user, favorited player) pair with the user's email — for the
+    milestone-alert job. */
+export async function favoritePlayerSubscriptions() {
+  return (await sql`
+    SELECT u.id AS user_id, u.email, f.ref AS player_id
+    FROM favorites f
+    JOIN users u ON u.id = f."userId"
+    WHERE f.kind = 'player' AND u.email IS NOT NULL
+  `) as { user_id: number; email: string; player_id: string }[];
+}
+
+export async function hasAlerted(userId: number, playerId: string, stat: string, milestone: number) {
+  const r = await sql`
+    SELECT 1 FROM milestone_alerts
+    WHERE "userId" = ${userId} AND player_id = ${playerId} AND stat = ${stat} AND milestone = ${milestone}
+    LIMIT 1
+  `;
+  return r.length > 0;
+}
+
+export async function recordAlert(userId: number, playerId: string, stat: string, milestone: number) {
+  await sql`
+    INSERT INTO milestone_alerts ("userId", player_id, stat, milestone)
+    VALUES (${userId}, ${playerId}, ${stat}, ${milestone})
+    ON CONFLICT DO NOTHING
+  `;
+}
+
 export async function allPlayerIds() {
   return (await sql`SELECT player_id FROM players ORDER BY player_id`) as { player_id: number }[];
 }
